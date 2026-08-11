@@ -1,4 +1,4 @@
-import User from '../models/User.js';
+import User from '../../models/User.js';
 
 /**
  * Registers a new user if the email is not already taken.

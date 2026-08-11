@@ -1,4 +1,4 @@
-import * as projectService from '../services/projectService.js';
+import * as projectService from '../services/project/projectService.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { createProjectSchema, updateProjectSchema } from '../validators/projectValidator.js';
 

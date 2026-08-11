@@ -1,4 +1,4 @@
-import * as authService from '../services/authService.js';
+import * as authService from '../services/auth/authService.js';
 import generateToken from '../utils/generateToken.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { registerSchema, loginSchema } from '../validators/authValidator.js';
