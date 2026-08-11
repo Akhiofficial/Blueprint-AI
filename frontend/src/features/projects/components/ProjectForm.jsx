@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import Input from '../../../components/Input';
-import Button from '../../../components/Button';
-import ErrorMessage from '../../../components/ErrorMessage';
+import Input from '../../../components/ui/Input';
+import Button from '../../../components/ui/Button';
+import ErrorMessage from '../../../components/common/ErrorMessage';
 
 const CATEGORIES = ['Web App', 'Mobile', 'API', 'DevOps', 'AI / ML', 'Other'];
 

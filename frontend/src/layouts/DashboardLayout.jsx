@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../features/auth/auth.context';
 import useAuth from '../features/auth/hooks/useAuth';
-import Button from '../components/Button';
-import Spinner from '../components/Spinner';
+import Button from '../components/ui/Button';
 
 // Dashboard shell — sidebar + top bar + main content area
 const DashboardLayout = ({ children }) => {

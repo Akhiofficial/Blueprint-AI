@@ -4,10 +4,10 @@ import DashboardLayout from '../../../layouts/DashboardLayout';
 import ProjectForm from '../components/ProjectForm';
 import { useProjectsContext } from '../projects.context';
 import useProjects from '../hooks/useProjects';
-import Badge from '../../../components/Badge';
-import Button from '../../../components/Button';
-import { PageSpinner } from '../../../components/Spinner';
-import ErrorMessage from '../../../components/ErrorMessage';
+import Badge from '../../../components/ui/Badge';
+import Button from '../../../components/ui/Button';
+import { PageSpinner } from '../../../components/common/Spinner';
+import ErrorMessage from '../../../components/common/ErrorMessage';
 
 const categoryColors = {
   'Web App': 'indigo', 'Mobile': 'green', 'API': 'yellow', 'DevOps': 'slate', 'AI / ML': 'red',

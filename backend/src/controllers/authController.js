@@ -1,7 +1,7 @@
-import User from '../models/User.js';
+import * as authService from '../services/authService.js';
 import generateToken from '../utils/generateToken.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { registerSchema, loginSchema } from '../schemas/authSchema.js';
+import { registerSchema, loginSchema } from '../validators/authValidator.js';
 
 // ─────────────────────────────────────────────
 // @desc    Register a new user
@@ -17,25 +17,25 @@ const register = asyncHandler(async (req, res) => {
 
   const { name, email, password } = parsed.data;
 
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    res.status(409);
-    throw new Error('Email already in use');
+  try {
+    const user = await authService.register({ name, email, password });
+    generateToken(res, user._id);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    if (err.message === 'Email already in use') {
+      res.status(409);
+    }
+    throw err;
   }
-
-  const user = await User.create({ name, email, password });
-
-  generateToken(res, user._id);
-
-  res.status(201).json({
-    success: true,
-    data: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  });
 });
 
 // ─────────────────────────────────────────────
@@ -52,30 +52,25 @@ const login = asyncHandler(async (req, res) => {
 
   const { email, password } = parsed.data;
 
-  // Explicitly select password — it has select:false on the schema
-  const user = await User.findOne({ email }).select('+password');
-  if (!user) {
-    res.status(401);
-    throw new Error('Invalid email or password');
+  try {
+    const user = await authService.login({ email, password });
+    generateToken(res, user._id);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    if (err.message === 'Invalid email or password') {
+      res.status(401);
+    }
+    throw err;
   }
-
-  const isMatch = await user.matchPassword(password);
-  if (!isMatch) {
-    res.status(401);
-    throw new Error('Invalid email or password');
-  }
-
-  generateToken(res, user._id);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  });
 });
 
 // ─────────────────────────────────────────────
@@ -106,3 +101,4 @@ const getMe = asyncHandler(async (req, res) => {
 });
 
 export { register, login, logout, getMe };
+

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import Input from '../../../components/Input';
-import Button from '../../../components/Button';
-import ErrorMessage from '../../../components/ErrorMessage';
+import Input from '../../../components/ui/Input';
+import Button from '../../../components/ui/Button';
+import ErrorMessage from '../../../components/common/ErrorMessage';
 
 // UI layer — collects input, calls handleRegister from parent. Never touches axios.
 const RegisterForm = ({ onSubmit, isLoading, error }) => {

@@ -5,9 +5,9 @@ import ProjectCard from '../components/ProjectCard';
 import { useProjectsContext } from '../projects.context';
 import useProjects from '../hooks/useProjects';
 import { useAuthContext } from '../../auth/auth.context';
-import { PageSpinner } from '../../../components/Spinner';
-import ErrorMessage from '../../../components/ErrorMessage';
-import Button from '../../../components/Button';
+import { PageSpinner } from '../../../components/common/Spinner';
+import ErrorMessage from '../../../components/common/ErrorMessage';
+import Button from '../../../components/ui/Button';
 
 const Dashboard = () => {
   const { projects, loading, error } = useProjectsContext();

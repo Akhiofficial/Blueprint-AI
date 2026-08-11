@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import Badge from '../../../components/Badge';
+import Badge from '../../../components/ui/Badge';
 
 const categoryColors = {
   'Web App':   'indigo',
