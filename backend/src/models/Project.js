@@ -26,6 +26,21 @@ const projectSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Project must have an owner'],
     },
+    projectType: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    businessGoal: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'archived', 'completed'],
+      default: 'active',
+    },
   },
   { timestamps: true }
 );

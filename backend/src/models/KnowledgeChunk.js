@@ -1,17 +1,31 @@
-/**
- * KnowledgeChunk.js — Mongoose Model
- *
- * Represents a single text chunk from a KnowledgeDocument.
- * Each chunk has a vector embedding stored in the vector store (Pinecone/ChromaDB).
- * This model tracks the chunk metadata in MongoDB.
- *
- * TODO: Implement full schema in Phase 3 — RAG pipeline.
- *
- * Planned fields:
- *   - document       ObjectId ref → KnowledgeDocument  (required)
- *   - chunkIndex     Number  (position in the source document)
- *   - content        String  (raw text of the chunk)
- *   - vectorId       String  (ID in the external vector store)
- *   - tokenCount     Number
- *   - createdAt      (timestamps: true)
- */
+import mongoose from 'mongoose';
+
+const knowledgeChunkSchema = new mongoose.Schema(
+  {
+    knowledgeDocument: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'KnowledgeDocument',
+      required: [true, 'Knowledge chunk must belong to a knowledge document'],
+      index: true,
+    },
+    chunkIndex: {
+      type: Number,
+      required: [true, 'Chunk index is required'],
+    },
+    content: {
+      type: String,
+      required: [true, 'Chunk content is required'],
+    },
+    vectorReference: {
+      type: String,
+      default: '',
+    },
+  },
+  { timestamps: true }
+);
+
+// Enforce unique chunk indices per document
+knowledgeChunkSchema.index({ knowledgeDocument: 1, chunkIndex: 1 }, { unique: true });
+
+const KnowledgeChunk = mongoose.model('KnowledgeChunk', knowledgeChunkSchema);
+export default KnowledgeChunk;

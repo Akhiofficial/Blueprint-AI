@@ -88,6 +88,30 @@ const ProjectDetail = () => {
                       )}
                     </div>
                     <p className="text-slate-400 leading-relaxed">{currentProject.description}</p>
+                    
+                    {/* Project Metadata Details */}
+                    {(currentProject.projectType || currentProject.businessGoal || currentProject.status) && (
+                      <div className="mt-4 pt-4 border-t border-surface-border grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        {currentProject.projectType && (
+                          <div>
+                            <span className="text-slate-500 font-medium">Project Type: </span>
+                            <span className="text-slate-300">{currentProject.projectType}</span>
+                          </div>
+                        )}
+                        {currentProject.status && (
+                          <div>
+                            <span className="text-slate-500 font-medium">Status: </span>
+                            <span className="text-slate-300 capitalize">{currentProject.status}</span>
+                          </div>
+                        )}
+                        {currentProject.businessGoal && (
+                          <div className="sm:col-span-2">
+                            <span className="text-slate-500 font-medium flex flex-col mb-0.5">Business Goal:</span>
+                            <span className="text-slate-300 leading-relaxed block">{currentProject.businessGoal}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2 shrink-0">

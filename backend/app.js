@@ -37,15 +37,7 @@ app.use('/api/projects', projectRoutes);
 
 // ── Health check
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ success: true, message: 'BlueprintAI API is running 🚀' });
-});
-
-// ── Centralized 404 route handler
-app.use((req, res, next) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found`,
-  });
+  res.status(200).json({ success: true, message: 'BlueprintAI API is running' });
 });
 
 // ── Centralized error handler — must be LAST

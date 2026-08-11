@@ -1,20 +1,42 @@
-/**
- * Generation.js — Mongoose Model
- *
- * Tracks a single Blueprint Engine generation job.
- * Records input, output, token usage, and status for each AI call.
- *
- * TODO: Implement full schema in Phase 3 — Blueprint Engine.
- *
- * Planned fields:
- *   - project        ObjectId ref → Project  (required)
- *   - user           ObjectId ref → User     (required)
- *   - documentType   String  (which document was generated)
- *   - status         Enum: 'pending' | 'running' | 'completed' | 'failed'
- *   - inputTokens    Number
- *   - outputTokens   Number
- *   - error          String  (error message if failed)
- *   - startedAt      Date
- *   - completedAt    Date
- *   - createdAt / updatedAt  (timestamps: true)
- */
+import mongoose from 'mongoose';
+
+const generationSchema = new mongoose.Schema(
+  {
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Project',
+      required: [true, 'Generation must belong to a project'],
+      index: true,
+    },
+    document: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Document',
+    },
+    generationType: {
+      type: String,
+      required: [true, 'Generation type is required'],
+      trim: true,
+    },
+    model: {
+      type: String,
+      default: '',
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'running', 'completed', 'failed'],
+      default: 'pending',
+    },
+    promptVersion: {
+      type: String,
+      default: '',
+    },
+    durationMs: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { timestamps: true }
+);
+
+const Generation = mongoose.model('Generation', generationSchema);
+export default Generation;

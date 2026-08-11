@@ -12,6 +12,9 @@ const createProjectSchema = z.object({
     .trim(),
   category: z.string().trim().optional().default(''),
   techStack: z.array(z.string().trim()).optional().default([]),
+  projectType: z.string().trim().optional().default(''),
+  businessGoal: z.string().trim().optional().default(''),
+  status: z.enum(['active', 'archived', 'completed']).optional().default('active'),
 });
 
 // For updates — all fields are optional

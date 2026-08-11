@@ -9,10 +9,13 @@ const CATEGORIES = ['Web App', 'Mobile', 'API', 'DevOps', 'AI / ML', 'Other'];
 // Props: onSubmit, defaultValues, isLoading, error, submitLabel
 const ProjectForm = ({ onSubmit, defaultValues = {}, isLoading, error, submitLabel = 'Save Project' }) => {
   const [form, setForm] = useState({
-    title:       defaultValues.title       || '',
-    description: defaultValues.description || '',
-    category:    defaultValues.category    || '',
-    techStack:   defaultValues.techStack   || [],
+    title:        defaultValues.title        || '',
+    description:  defaultValues.description  || '',
+    category:     defaultValues.category     || '',
+    techStack:    defaultValues.techStack    || [],
+    projectType:  defaultValues.projectType  || '',
+    businessGoal: defaultValues.businessGoal || '',
+    status:       defaultValues.status       || 'active',
   });
   const [tagInput, setTagInput] = useState('');
 
@@ -20,13 +23,16 @@ const ProjectForm = ({ onSubmit, defaultValues = {}, isLoading, error, submitLab
   useEffect(() => {
     if (defaultValues.title) {
       setForm({
-        title:       defaultValues.title       || '',
-        description: defaultValues.description || '',
-        category:    defaultValues.category    || '',
-        techStack:   defaultValues.techStack   || [],
+        title:        defaultValues.title        || '',
+        description:  defaultValues.description  || '',
+        category:     defaultValues.category     || '',
+        techStack:    defaultValues.techStack    || [],
+        projectType:  defaultValues.projectType  || '',
+        businessGoal: defaultValues.businessGoal || '',
+        status:       defaultValues.status       || 'active',
       });
     }
-  }, [defaultValues.title]);
+  }, [defaultValues.title, defaultValues.projectType, defaultValues.businessGoal, defaultValues.status]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -91,6 +97,34 @@ const ProjectForm = ({ onSubmit, defaultValues = {}, isLoading, error, submitLab
         />
       </div>
 
+      {/* Project Type */}
+      <Input
+        id="projectType"
+        label="Project type"
+        placeholder="e.g. SaaS, Marketplace, Social Network"
+        value={form.projectType}
+        onChange={handleChange}
+      />
+
+      {/* Business Goal */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="businessGoal" className="text-sm font-medium text-slate-300">
+          Business goal
+        </label>
+        <textarea
+          id="businessGoal"
+          name="businessGoal"
+          value={form.businessGoal}
+          onChange={handleChange}
+          placeholder="What is the primary business goal of this project? (e.g. Monetize via subscriptions, automate internal workflow)"
+          rows={3}
+          className="w-full rounded-xl bg-surface border border-surface-border px-4 py-2.5
+                     text-sm text-slate-100 placeholder-slate-500 resize-none
+                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500
+                     hover:border-slate-500 transition-all duration-200"
+        />
+      </div>
+
       {/* Category */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="category" className="text-sm font-medium text-slate-300">Category</label>
@@ -107,6 +141,24 @@ const ProjectForm = ({ onSubmit, defaultValues = {}, isLoading, error, submitLab
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
+        </select>
+      </div>
+
+      {/* Status — only shown or active in edit mode for clarity, or always available */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="status" className="text-sm font-medium text-slate-300">Status</label>
+        <select
+          id="status"
+          name="status"
+          value={form.status}
+          onChange={handleChange}
+          className="w-full rounded-xl bg-surface border border-surface-border px-4 py-2.5
+                     text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500
+                     focus:border-brand-500 hover:border-slate-500 transition-all duration-200"
+        >
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
+          <option value="completed">Completed</option>
         </select>
       </div>
 
