@@ -223,6 +223,24 @@
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
+
+  /* ── Dark theme native select / option ── */
+  /* Makes browser-native dropdowns consistent with the dark UI on supported browsers */
+  .form-select-dark {
+    color-scheme: dark;
+  }
+  .form-select-dark option {
+    background-color: #11161D;
+    color: rgba(255,255,255,0.8);
+  }
+
+  /* ── Spin animation (used by ProjectForm loading button) ── */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin {
+    animation: spin 0.75s linear infinite;
+  }
 }
 
 /* Reduced motion */
