@@ -35,6 +35,18 @@ const DashboardLayout = ({ children }) => {
       ),
     },
     {
+      label: 'Projects',
+      to: '/projects',
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden>
+          <path
+            d="M1 4.5C1 3.67 1.67 3 2.5 3h3.29a1 1 0 0 1 .7.29L7.5 4.5H12.5C13.33 4.5 14 5.17 14 6v6c0 .83-.67 1.5-1.5 1.5h-10C1.67 13.5 1 12.83 1 12V4.5z"
+            stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+    {
       label: 'New Project',
       to: '/projects/new',
       icon: (
@@ -91,7 +103,11 @@ const DashboardLayout = ({ children }) => {
           aria-label="Main navigation"
         >
           {navItems.map((item) => {
-            const isActive = location.pathname === item.to;
+            const isActive =
+              item.to === '/projects'
+                // /projects is active only for exact /projects (not /projects/new or /projects/:id)
+                ? location.pathname === '/projects'
+                : location.pathname === item.to;
             return (
               <Link
                 key={item.to}
@@ -228,7 +244,15 @@ const DashboardLayout = ({ children }) => {
               className="hidden sm:block bp-mono"
               style={{ fontSize: '0.6rem', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.2)' }}
             >
-              {location.pathname === '/dashboard' ? 'DASHBOARD' : location.pathname.replace('/projects/', 'PROJECT / ').toUpperCase()}
+              {location.pathname === '/dashboard'
+                ? 'DASHBOARD'
+                : location.pathname === '/projects'
+                  ? 'PROJECTS'
+                  : location.pathname === '/projects/new'
+                    ? 'NEW PROJECT'
+                    : location.pathname.startsWith('/projects/')
+                      ? 'PROJECT DETAIL'
+                      : location.pathname.toUpperCase()}
             </span>
             {/* Quick new project button — visible on mobile top bar */}
             <button

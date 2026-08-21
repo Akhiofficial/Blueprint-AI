@@ -12,6 +12,7 @@ import Register from '../features/auth/pages/Register';
 
 // Project pages
 import Dashboard     from '../features/projects/pages/Dashboard';
+import ProjectsPage  from '../features/projects/pages/ProjectsPage';
 import CreateProject from '../features/projects/pages/CreateProject';
 import ProjectDetail from '../features/projects/pages/ProjectDetail';
 
@@ -35,6 +36,10 @@ const AppRouter = () => {
       <Route
         path="/dashboard"
         element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+      />
+      <Route
+        path="/projects"
+        element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>}
       />
       <Route
         path="/projects/new"
