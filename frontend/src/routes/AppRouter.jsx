@@ -16,6 +16,9 @@ import ProjectsPage  from '../features/projects/pages/ProjectsPage';
 import CreateProject from '../features/projects/pages/CreateProject';
 import ProjectDetail from '../features/projects/pages/ProjectDetail';
 
+// Requirement pages
+import RequirementsPage from '../features/requirements/pages/RequirementsPage';
+
 const AppRouter = () => {
   const { initAuth } = useAuth();
 
@@ -48,6 +51,10 @@ const AppRouter = () => {
       <Route
         path="/projects/:id"
         element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>}
+      />
+      <Route
+        path="/projects/:id/requirements"
+        element={<ProtectedRoute><RequirementsPage /></ProtectedRoute>}
       />
 
       {/* ── Fallback ── */}

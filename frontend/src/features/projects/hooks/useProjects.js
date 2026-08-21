@@ -46,8 +46,8 @@ const useProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      await projectsApi.createProject(formData);
-      navigate('/dashboard');
+      const newProject = await projectsApi.createProject(formData);
+      navigate(`/projects/${newProject._id}/requirements`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create project.');
     } finally {
