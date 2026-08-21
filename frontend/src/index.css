@@ -179,6 +179,50 @@
     border-radius: 4px;
     padding: 1px 6px;
   }
+  /* ── Dashboard card — matches bp-card but Tailwind-safe ── */
+  .dash-card {
+    background-color: #11161D;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 4px 24px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dash-card:hover {
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  /* ── Dashboard refined button — softer blue gradient ── */
+  /* Same hue as landing bp-btn-primary but graduated, less stark */
+  .dash-btn {
+    background: linear-gradient(135deg, #1E40AF 0%, #2563EB 55%, #3B82F6 100%);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 16px rgba(59,130,246,0.18);
+  }
+  .dash-btn:hover {
+    background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 55%, #2563EB 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 24px rgba(59,130,246,0.28);
+  }
+
+  /* ── Skeleton pulse animation ── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.04) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.6s ease-in-out infinite;
+  }
+
+  @keyframes skeletonShimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 }
 
 /* Reduced motion */
