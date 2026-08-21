@@ -12,14 +12,14 @@ const Login = () => {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to your BlueprintAI account"
+      subtitle="Continue building your software blueprint."
     >
       <LoginForm onSubmit={handleLogin} isLoading={loading} error={error} />
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-slate-400">
         Don't have an account?{' '}
-        <Link to="/register" className="font-medium text-brand-400 hover:text-brand-300 transition-colors">
-          Create one free
+        <Link to="/register" className="font-medium text-bp-cyan hover:text-bp-cyan/80 transition-colors">
+          Create one
         </Link>
       </p>
     </AuthLayout>

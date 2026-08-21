@@ -11,14 +11,14 @@ const Register = () => {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Start planning your software projects with AI"
+      title="Create account"
+      subtitle="Start planning your software projects with AI."
     >
       <RegisterForm onSubmit={handleRegister} isLoading={loading} error={error} />
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-slate-400">
         Already have an account?{' '}
-        <Link to="/login" className="font-medium text-brand-400 hover:text-brand-300 transition-colors">
+        <Link to="/login" className="font-medium text-bp-cyan hover:text-bp-cyan/80 transition-colors">
           Sign in
         </Link>
       </p>
