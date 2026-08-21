@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -26,18 +26,166 @@
 }
 
 @layer components {
-  /* Glass card effect */
+  /* ── Existing dashboard utilities (unchanged) ── */
   .glass {
     @apply bg-surface-card/80 backdrop-blur-sm border border-surface-border/60 rounded-2xl;
   }
 
-  /* Brand gradient text */
   .gradient-text {
     @apply bg-gradient-to-r from-brand-400 to-purple-400 bg-clip-text text-transparent;
   }
 
-  /* Focus ring used across all interactive elements */
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface;
+  }
+
+  /* ── Landing page utilities ── */
+
+  /* Gradient text — blue to cyan */
+  .bp-gradient-text {
+    background: linear-gradient(135deg, #3B82F6 0%, #22D3EE 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Subtle grid background */
+  .bp-grid-bg {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* Hero glow background */
+  .bp-hero-bg {
+    background-color: #080B0F;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% 100%, rgba(34, 211, 238, 0.07) 0%, rgba(59, 130, 246, 0.10) 40%, transparent 70%),
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 64px 64px, 64px 64px;
+  }
+
+  /* Blue glow for CTA / section backgrounds */
+  .bp-blue-glow-bg {
+    background-color: #080B0F;
+    background-image: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(59, 130, 246, 0.18) 0%, rgba(34, 211, 238, 0.08) 40%, transparent 70%);
+  }
+
+  /* Card surface */
+  .bp-card {
+    background-color: #11161D;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  /* Navbar pill */
+  .bp-navbar {
+    background: rgba(8, 11, 15, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  /* Blueprint node card */
+  .bp-node {
+    background: rgba(17, 22, 29, 0.95);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+
+  /* Primary button */
+  .bp-btn-primary {
+    background: #3B82F6;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 20px rgba(59,130,246,0.25);
+  }
+  .bp-btn-primary:hover {
+    background: #2563EB;
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(59,130,246,0.4);
+  }
+
+  /* Ghost button */
+  .bp-btn-ghost {
+    background: rgba(255,255,255,0.05);
+    color: #D1D5DB;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  .bp-btn-ghost:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-2px);
+  }
+
+  /* Mono label eyebrow text */
+  .bp-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: #22D3EE;
+    text-transform: uppercase;
+  }
+
+  /* Noise grain overlay */
+  .bp-noise::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* Section divider */
+  .bp-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  }
+
+  /* Workflow step active state */
+  .bp-step-active .bp-step-dot {
+    background: #22D3EE;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+  }
+
+  /* Monospace technical label */
+  .bp-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Requirement ID badge */
+  .bp-req-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #22D3EE;
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
