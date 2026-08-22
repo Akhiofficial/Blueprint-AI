@@ -19,6 +19,12 @@ import ProjectDetail from '../features/projects/pages/ProjectDetail';
 // Requirement pages
 import RequirementsPage from '../features/requirements/pages/RequirementsPage';
 
+// AI pages
+import AnalysisPage from '../features/ai/pages/AnalysisPage';
+
+// Workspace page
+import WorkspacePage from '../features/workspace/pages/WorkspacePage';
+
 const AppRouter = () => {
   const { initAuth } = useAuth();
 
@@ -55,6 +61,14 @@ const AppRouter = () => {
       <Route
         path="/projects/:id/requirements"
         element={<ProtectedRoute><RequirementsPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/projects/:id/analysis"
+        element={<ProtectedRoute><AnalysisPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/projects/:id/workspace"
+        element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>}
       />
 
       {/* ── Fallback ── */}

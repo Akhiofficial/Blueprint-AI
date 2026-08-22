@@ -243,6 +243,166 @@
   }
 }
 
+@layer components {
+  /* ── Blueprint Workspace ── */
+
+  /* Workspace panels */
+  .ws-panel {
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* Chat Panel Scrollbars */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Sidebar nav item */
+  .ws-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    user-select: none;
+  }
+  .ws-nav-item:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.06);
+  }
+  .ws-nav-item.active {
+    background: rgba(59,130,246,0.08);
+    border-color: rgba(59,130,246,0.2);
+  }
+
+  /* Document section block */
+  .ws-doc-section {
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .ws-doc-section:hover {
+    border-color: rgba(255,255,255,0.05);
+  }
+
+  /* HTTP method badges */
+  .ws-method {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .ws-method-GET    { background: rgba(16,185,129,0.12); color: #34D399; border: 1px solid rgba(16,185,129,0.2); }
+  .ws-method-POST   { background: rgba(59,130,246,0.12); color: #60A5FA; border: 1px solid rgba(59,130,246,0.2); }
+  .ws-method-PUT    { background: rgba(245,158,11,0.12); color: #FCD34D; border: 1px solid rgba(245,158,11,0.2); }
+  .ws-method-PATCH  { background: rgba(168,85,247,0.12); color: #C084FC; border: 1px solid rgba(168,85,247,0.2); }
+  .ws-method-DELETE { background: rgba(239,68,68,0.12);  color: #F87171; border: 1px solid rgba(239,68,68,0.2); }
+
+  /* Code block inside document */
+  .ws-code-block {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.75);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* Entity table in DB schema */
+  .ws-entity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  .ws-entity-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .ws-entity-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.72);
+    vertical-align: middle;
+  }
+  .ws-entity-table tr:last-child td { border-bottom: none; }
+  .ws-entity-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+  /* User story card */
+  .ws-story-card {
+    background: #11161D;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ws-story-card:hover {
+    border-color: rgba(59,130,246,0.2);
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.08);
+  }
+
+  /* Priority badge */
+  .ws-priority-high   { background: rgba(239,68,68,0.1);  color: #F87171; border: 1px solid rgba(239,68,68,0.2); }
+  .ws-priority-medium { background: rgba(245,158,11,0.1); color: #FCD34D; border: 1px solid rgba(245,158,11,0.2); }
+  .ws-priority-low    { background: rgba(16,185,129,0.1); color: #34D399; border: 1px solid rgba(16,185,129,0.2); }
+
+  /* Save state */
+  .ws-save-saved   { color: #34D399; }
+  .ws-save-saving  { color: #FCD34D; }
+  .ws-save-unsaved { color: #F87171; }
+
+  /* Entrance animations */
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .ws-enter-left  { animation: slideInLeft  0.28s ease-out both; }
+  .ws-enter-right { animation: slideInRight 0.28s ease-out both; }
+  .ws-enter-up    { animation: fadeSlideUp  0.25s ease-out both; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
