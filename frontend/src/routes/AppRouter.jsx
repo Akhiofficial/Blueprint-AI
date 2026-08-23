@@ -25,6 +25,9 @@ import AnalysisPage from '../features/ai/pages/AnalysisPage';
 // Workspace page
 import WorkspacePage from '../features/workspace/pages/WorkspacePage';
 
+// Settings page
+import SettingsPage from '../features/settings/pages/SettingsPage';
+
 const AppRouter = () => {
   const { initAuth } = useAuth();
 
@@ -69,6 +72,10 @@ const AppRouter = () => {
       <Route
         path="/projects/:id/workspace"
         element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>}
+      />
+      <Route
+        path="/settings"
+        element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
       />
 
       {/* ── Fallback ── */}
