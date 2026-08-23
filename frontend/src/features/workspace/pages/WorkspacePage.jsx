@@ -29,6 +29,7 @@ import BlueprintHeader from '../components/BlueprintHeader';
 import BlueprintSidebar from '../components/BlueprintSidebar';
 import DocumentViewer from '../components/DocumentViewer';
 import ChatPanel from '../components/ChatPanel';
+import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import ExportDialog from '../components/ExportDialog';
 
 // ─── Workspace loading skeleton ───────────────────────────────────────────────
@@ -81,6 +82,8 @@ const WorkspacePage = () => {
   const [activeDoc,    setActiveDoc]    = useState(null);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const [exportOpen,   setExportOpen]   = useState(false);
+  const [activeRightPanel, setActiveRightPanel] = useState('chat'); // 'chat' | 'history' | null
+  const [previewVersion, setPreviewVersion] = useState(null);
 
   // ── Load project if not in context ──
   useEffect(() => {
@@ -113,6 +116,7 @@ const WorkspacePage = () => {
     setActiveDocId(docId);
     setSearchParams({ doc: docId }, { replace: true });
     setSaveState(null);
+    setPreviewVersion(null);
   }, [setSearchParams]);
 
   // ── Handle unsaved changes on navigation ──
@@ -148,6 +152,8 @@ const WorkspacePage = () => {
         onExport={() => setExportOpen(true)}
         isSidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+        activeRightPanel={activeRightPanel}
+        onToggleRightPanel={(panel) => setActiveRightPanel(prev => prev === panel ? null : panel)}
       />
 
       {/* ── Three-panel workspace ── */}
@@ -236,20 +242,32 @@ const WorkspacePage = () => {
               onDocumentLoaded={setActiveDoc}
               onSaveStateChange={setSaveState}
               externalDocUpdate={activeDoc}
+              previewVersion={previewVersion}
+              onClearPreview={() => setPreviewVersion(null)}
             />
           </main>
 
-          {/* ── Right: AI Chat Panel ── */}
-          <ChatPanel
-            projectId={projectId}
-            activeDocId={activeDocId}
-            onDocumentRefined={(updatedDoc) => {
-              setActiveDoc(updatedDoc);
-              // Trigger a save state change to show success momentarily
-              setSaveState('saved');
-              setTimeout(() => setSaveState(null), 3000);
-            }}
-          />
+          {/* ── Right: AI Chat / History Panel ── */}
+          {activeRightPanel === 'chat' && (
+            <ChatPanel
+              projectId={projectId}
+              activeDocId={activeDocId}
+              onDocumentRefined={(updatedDoc) => {
+                setActiveDoc(updatedDoc);
+                // Trigger a save state change to show success momentarily
+                setSaveState('saved');
+                setTimeout(() => setSaveState(null), 3000);
+              }}
+            />
+          )}
+
+          {activeRightPanel === 'history' && (
+            <VersionHistoryPanel
+              activeDocId={activeDocId}
+              activeDoc={activeDoc}
+              onViewVersion={(v) => setPreviewVersion(v)}
+            />
+          )}
         </div>
       )}
 

@@ -62,6 +62,8 @@ const BlueprintHeader = ({
   onSave,
   isSidebarOpen,
   onToggleSidebar,
+  activeRightPanel,
+  onToggleRightPanel,
 }) => {
   return (
     <header
@@ -166,6 +168,43 @@ const BlueprintHeader = ({
             Save
           </button>
         )}
+
+        <div className="w-px h-6 mx-1 bg-white/10 hidden sm:block" />
+
+        {/* Chat toggle button */}
+        <button
+          onClick={() => onToggleRightPanel('chat')}
+          className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 hidden sm:flex"
+          style={{
+            background: activeRightPanel === 'chat' ? 'rgba(59,130,246,0.15)' : 'transparent',
+            color: activeRightPanel === 'chat' ? '#93C5FD' : 'rgba(255,255,255,0.6)',
+            border: activeRightPanel === 'chat' ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+          }}
+          title="Toggle AI Chat"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          Chat
+        </button>
+
+        {/* History button */}
+        <button
+          id="ws-history-btn"
+          onClick={() => onToggleRightPanel?.('history')}
+          className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
+          style={{
+            background: activeRightPanel === 'history' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.06)',
+            border: activeRightPanel === 'history' ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.12)',
+            color: activeRightPanel === 'history' ? '#60A5FA' : 'rgba(255,255,255,0.7)',
+          }}
+          onMouseEnter={e => { if (activeRightPanel !== 'history') e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+          onMouseLeave={e => { if (activeRightPanel !== 'history') e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+          aria-label="Toggle version history"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M8 2v6l4 2M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          History
+        </button>
 
         {/* Export button */}
         <button

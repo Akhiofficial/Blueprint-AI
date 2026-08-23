@@ -159,6 +159,8 @@ const DocumentViewer = ({
   onDocumentLoaded,   // callback to inform parent of loaded doc (for header/context)
   onSaveStateChange,  // callback: 'saved' | 'saving' | 'unsaved' | null
   externalDocUpdate,  // When the chat panel updates the doc
+  previewVersion,     // { versionNumber, createdAt, changes }
+  onClearPreview,     // callback to clear preview
 }) => {
   const [loadState, setLoadState]       = useState('idle'); // idle | loading | ready | error | empty
   const [document, setDocument]         = useState(null);
@@ -248,7 +250,6 @@ const DocumentViewer = ({
 
   // ── Document status ──
   const docStatus = docStatuses?.[activeDocId]?.status || 'not_generated';
-  const docMeta   = { id: activeDocId, label: activeDocId };
 
   // ── Generating state ──
   if (docStatus === 'generating') {
@@ -256,21 +257,68 @@ const DocumentViewer = ({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* Actions bar */}
-      <DocumentActions
-        docId={activeDocId}
-        docStatus={docStatus}
-        isEditing={isEditing}
-        onEdit={handleEdit}
-        onCancelEdit={handleCancelEdit}
-        onSave={handleSave}
-        onRegenerate={loadDocument}
-        isSaving={isSaving}
-      />
+    <div className="flex flex-col h-full min-h-0 relative">
+      {/* Actions bar (hidden in preview mode) */}
+      {!previewVersion && (
+        <DocumentActions
+          docId={activeDocId}
+          docStatus={docStatus}
+          isEditing={isEditing}
+          onEdit={handleEdit}
+          onCancelEdit={handleCancelEdit}
+          onSave={handleSave}
+          onRegenerate={loadDocument}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* Preview Banner */}
+      {previewVersion && (
+        <div 
+          className="flex items-center justify-between px-6 py-3"
+          style={{
+            background: 'rgba(245, 158, 11, 0.1)',
+            borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ color: '#F59E0B' }}>
+              <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 4v4.5l3 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-sm font-medium" style={{ color: '#FCD34D' }}>
+              Viewing version {previewVersion.versionNumber}
+            </span>
+            <span className="text-xs" style={{ color: 'rgba(252, 211, 77, 0.7)' }}>
+              — This is a previous version of this document.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClearPreview}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+            >
+              Back to Current
+            </button>
+            <button
+              onClick={() => {
+                window.alert('Restore functionality pending backend support in Phase 3.');
+              }}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+              style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#FCD34D' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245, 158, 11, 0.2)'; }}
+            >
+              Restore Version
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Document content area */}
-      <div className="flex-1 overflow-y-auto ws-panel">
+      <div className={`flex-1 overflow-y-auto ws-panel ${previewVersion ? 'opacity-80' : ''}`}>
         {loadState === 'loading' && <DocumentSkeleton />}
         {loadState === 'error'   && <DocError onRetry={loadDocument} />}
         {loadState === 'empty'   && <DocEmpty docId={activeDocId} docLabel={activeDocId} />}
