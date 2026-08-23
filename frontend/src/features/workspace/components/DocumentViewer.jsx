@@ -161,6 +161,7 @@ const DocumentViewer = ({
   externalDocUpdate,  // When the chat panel updates the doc
   previewVersion,     // { versionNumber, createdAt, changes }
   onClearPreview,     // callback to clear preview
+  triggerSave,        // Trigger save from parent
 }) => {
   const [loadState, setLoadState]       = useState('idle'); // idle | loading | ready | error | empty
   const [document, setDocument]         = useState(null);
@@ -239,6 +240,13 @@ const DocumentViewer = ({
       setIsSaving(false);
     }
   };
+
+  // ── Trigger save from parent ──
+  useEffect(() => {
+    if (triggerSave > 0) {
+      handleSave();
+    }
+  }, [triggerSave]);
 
   // ── Section regeneration (UI only — Phase 3 connects to API) ──
   const handleRegenSection = async (sectionId) => {

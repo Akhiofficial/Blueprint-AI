@@ -84,6 +84,7 @@ const WorkspacePage = () => {
   const [exportOpen,   setExportOpen]   = useState(false);
   const [activeRightPanel, setActiveRightPanel] = useState('chat'); // 'chat' | 'history' | null
   const [previewVersion, setPreviewVersion] = useState(null);
+  const [triggerSave, setTriggerSave] = useState(0);
 
   // ── Load project if not in context ──
   useEffect(() => {
@@ -148,7 +149,7 @@ const WorkspacePage = () => {
         projectName={projectName}
         activeDocLabel={activeDocMeta?.label}
         saveState={saveState}
-        onSave={() => {}}  // triggered from DocumentViewer
+        onSave={() => setTriggerSave(prev => prev + 1)}
         onExport={() => setExportOpen(true)}
         isSidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
@@ -244,6 +245,7 @@ const WorkspacePage = () => {
               externalDocUpdate={activeDoc}
               previewVersion={previewVersion}
               onClearPreview={() => setPreviewVersion(null)}
+              triggerSave={triggerSave}
             />
           </main>
 
@@ -276,6 +278,9 @@ const WorkspacePage = () => {
         isOpen={exportOpen}
         onClose={() => setExportOpen(false)}
         docStatuses={docStatuses}
+        activeDocId={activeDocId}
+        saveState={saveState}
+        onSave={() => setTriggerSave(prev => prev + 1)}
       />
     </div>
   );
