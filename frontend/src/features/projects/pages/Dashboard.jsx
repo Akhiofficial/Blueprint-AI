@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../../layouts/DashboardLayout';
 import DashboardHeader from '../components/DashboardHeader';
 import ProjectCard from '../components/ProjectCard';
-import EmptyProjectsState from '../components/EmptyProjectsState';
-import DashboardSkeleton from '../components/DashboardSkeleton';
 import { useProjectsContext } from '../projects.context';
 import useProjects from '../hooks/useProjects';
 import { useAuthContext } from '../../auth/auth.context';
-import ErrorMessage from '../../../components/common/ErrorMessage';
-import Button from '../../../components/ui/Button';
+import ErrorState from '../../../components/common/ErrorState';
+import EmptyState from '../../../components/common/EmptyState';
+import { PageSkeleton } from '../../../components/common/Skeleton';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
 
 // ── Most recent project highlight ─────────────────────────────────────────────
 // Shows a lightweight "continue working" strip for the most recently updated project.
@@ -59,6 +59,9 @@ const Dashboard = () => {
 
   // Search state (client-side filtering — no backend change needed)
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Delete confirm state
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   useEffect(() => {
     handleFetchProjects();
@@ -66,8 +69,13 @@ const Dashboard = () => {
   }, []);
 
   const confirmDelete = (id) => {
-    if (window.confirm('Delete this project? This cannot be undone.')) {
-      handleDeleteProject(id);
+    setProjectToDelete(id);
+  };
+
+  const executeDelete = () => {
+    if (projectToDelete) {
+      handleDeleteProject(projectToDelete);
+      setProjectToDelete(null);
     }
   };
 
@@ -96,21 +104,15 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       {/* ── Loading skeleton ── */}
-      {loading && <DashboardSkeleton />}
+      {loading && <PageSkeleton />}
 
       {/* ── Error state ── */}
       {!loading && error && (
-        <div className="animate-fade-in">
-          <ErrorMessage message="Unable to load your projects." className="mb-4" />
-          <Button
-            id="retry-fetch-projects"
-            variant="secondary"
-            size="sm"
-            onClick={handleFetchProjects}
-          >
-            ↺ Try Again
-          </Button>
-        </div>
+        <ErrorState
+          title="Unable to load dashboard"
+          message={error.message || "Something went wrong while loading your projects."}
+          onRetry={handleFetchProjects}
+        />
       )}
 
       {/* ── Main content (loaded, no error) ── */}
@@ -129,14 +131,13 @@ const Dashboard = () => {
 
           {/* Empty state */}
           {sortedProjects.length === 0 && (
-            <div
-              className="rounded-2xl animate-fade-in"
-              style={{
-                border: '1px dashed rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.01)',
-              }}
-            >
-              <EmptyProjectsState />
+            <div className="animate-fade-in">
+              <EmptyState 
+                title="No projects yet"
+                description="Create your first software project and start building your development blueprint."
+                actionText="Create Project"
+                actionTo="/projects/new"
+              />
             </div>
           )}
 
@@ -231,6 +232,16 @@ const Dashboard = () => {
           )}
         </>
       )}
+
+      <ConfirmDialog 
+        isOpen={!!projectToDelete}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone."
+        confirmText="Delete Project"
+        onConfirm={executeDelete}
+        onCancel={() => setProjectToDelete(null)}
+        isPending={loading}
+      />
     </DashboardLayout>
   );
 };

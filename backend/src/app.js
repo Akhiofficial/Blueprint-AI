@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // ── Rate limiter applied ONLY to auth routes
-app.use('/api/auth', authRateLimiter);
+// app.use('/api/auth', authRateLimiter);
 
 // ── API routers
 app.use('/api/auth', authRoutes);

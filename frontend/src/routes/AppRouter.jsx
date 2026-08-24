@@ -7,12 +7,12 @@ import useAuth from '../features/auth/hooks/useAuth';
 import LandingPage from '../features/landing/LandingPage';
 
 // Auth pages
-import Login    from '../features/auth/pages/Login';
+import Login from '../features/auth/pages/Login';
 import Register from '../features/auth/pages/Register';
 
 // Project pages
-import Dashboard     from '../features/projects/pages/Dashboard';
-import ProjectsPage  from '../features/projects/pages/ProjectsPage';
+import Dashboard from '../features/projects/pages/Dashboard';
+import ProjectsPage from '../features/projects/pages/ProjectsPage';
 import CreateProject from '../features/projects/pages/CreateProject';
 import ProjectDetail from '../features/projects/pages/ProjectDetail';
 
@@ -28,6 +28,9 @@ import WorkspacePage from '../features/workspace/pages/WorkspacePage';
 // Settings page
 import SettingsPage from '../features/settings/pages/SettingsPage';
 
+// Shared
+import NotFound from '../components/common/NotFound';
+
 const AppRouter = () => {
   const { initAuth } = useAuth();
 
@@ -41,7 +44,7 @@ const AppRouter = () => {
       <Route path="/" element={<LandingPage />} />
 
       {/* ── Auth ── */}
-      <Route path="/login"    element={<Login />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
       {/* ── Protected App ── */}
@@ -79,7 +82,7 @@ const AppRouter = () => {
       />
 
       {/* ── Fallback ── */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

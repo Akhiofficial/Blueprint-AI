@@ -23,14 +23,23 @@ const api = axios.create({
   },
 });
 
-// Response interceptor: handle 401 globally
+// Response interceptor: handle 401 globally and normalize errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
-    return Promise.reject(error);
+    
+    // Normalize error for the UI
+    const normalizedError = {
+      message: error.response?.data?.message || error.message || 'An unexpected network error occurred.',
+      status: error.response?.status || 500,
+      code: error.code || 'UNKNOWN_ERROR',
+      isNormalized: true
+    };
+    
+    return Promise.reject(normalizedError);
   }
 );
 

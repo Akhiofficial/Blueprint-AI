@@ -6,8 +6,9 @@ import { useProjectsContext } from '../projects.context';
 import useProjects from '../hooks/useProjects';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
-import { PageSpinner } from '../../../components/common/Spinner';
-import ErrorMessage from '../../../components/common/ErrorMessage';
+import { PageSkeleton } from '../../../components/common/Skeleton';
+import ErrorState from '../../../components/common/ErrorState';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
 
 const categoryColors = {
   'Web App': 'indigo', 'Mobile': 'green', 'API': 'yellow', 'DevOps': 'slate', 'AI / ML': 'red',
@@ -18,6 +19,7 @@ const ProjectDetail = () => {
   const { currentProject, loading, error } = useProjectsContext();
   const { handleFetchProjectById, handleUpdateProject, handleDeleteProject } = useProjects();
   const [isEditing, setIsEditing] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   useEffect(() => {
     handleFetchProjectById(id);
@@ -30,12 +32,15 @@ const ProjectDetail = () => {
   };
 
   const confirmDelete = () => {
-    if (window.confirm('Delete this project? This cannot be undone.')) {
-      handleDeleteProject(id);
-    }
+    setShowConfirmDelete(true);
   };
 
-  if (loading && !currentProject) return <DashboardLayout><PageSpinner /></DashboardLayout>;
+  const handleExecuteDelete = () => {
+    handleDeleteProject(id);
+    setShowConfirmDelete(false);
+  };
+
+  if (loading && !currentProject) return <DashboardLayout><PageSkeleton /></DashboardLayout>;
 
   return (
     <DashboardLayout>
@@ -51,7 +56,13 @@ const ProjectDetail = () => {
             <span className="text-slate-300 truncate max-w-xs inline-block font-medium">{currentProject?.title}</span>
           </nav>
 
-          <ErrorMessage message={error} className="mb-6" />
+          {error && !currentProject && (
+            <ErrorState 
+              message={error.message || error} 
+              onRetry={() => handleFetchProjectById(id)} 
+              className="mb-6"
+            />
+          )}
           {isEditing ? (
             /* ── Edit mode ── */
             <div className="glass p-8">
@@ -213,6 +224,16 @@ const ProjectDetail = () => {
           )}
         </div>
       )}
+
+      <ConfirmDialog 
+        isOpen={showConfirmDelete}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone."
+        confirmText="Delete Project"
+        onConfirm={handleExecuteDelete}
+        onCancel={() => setShowConfirmDelete(false)}
+        isPending={loading}
+      />
     </DashboardLayout>
   );
 };

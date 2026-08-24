@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../auth/auth.context';
 import useAuth from '../../auth/hooks/useAuth';
 import DashboardLayout from '../../../layouts/DashboardLayout';
+import { useToast } from '../../../components/common/ToastContext';
 
 const SettingsPage = () => {
   const { user } = useAuthContext();
   const { handleLogout } = useAuth();
+  const { success, error } = useToast();
 
   const [name, setName] = useState(user?.name || '');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
 
   // Track if changes are made to trigger the beforeunload listener
   const hasUnsavedChanges = user?.name !== name || avatarFile !== null;
@@ -38,15 +38,13 @@ const SettingsPage = () => {
     if (!hasUnsavedChanges) return;
 
     setIsSaving(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
 
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Report missing backend endpoint
     setIsSaving(false);
-    setErrorMsg('Profile Settings UI implemented; backend profile update endpoint still required.');
+    error('Profile Settings UI implemented; backend profile update endpoint still required.');
   };
 
   const handleImageChange = (e) => {
@@ -152,19 +150,7 @@ const SettingsPage = () => {
                 <p className="text-[0.65rem] mt-1.5" style={{ color: 'var(--theme-text-muted)' }}>Email cannot be changed.</p>
               </div>
 
-              {/* Status Messages */}
-              {errorMsg && (
-                <div className="px-4 py-3 rounded-lg text-xs flex items-center gap-2" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#FCA5A5', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                  {errorMsg}
-                </div>
-              )}
-              {successMsg && (
-                <div className="px-4 py-3 rounded-lg text-xs flex items-center gap-2" style={{ background: 'rgba(52, 211, 153, 0.1)', color: '#6EE7B7', border: '1px solid rgba(52, 211, 153, 0.2)' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  {successMsg}
-                </div>
-              )}
+              {/* Status Messages removed in favor of Toasts */}
 
               <div className="pt-2 flex items-center gap-3">
                 <button 

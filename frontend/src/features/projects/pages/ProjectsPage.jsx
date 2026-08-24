@@ -3,12 +3,12 @@ import DashboardLayout from '../../../layouts/DashboardLayout';
 import ProjectsHeader from '../components/ProjectsHeader';
 import ProjectFilters from '../components/ProjectFilters';
 import ProjectCard from '../components/ProjectCard';
-import ProjectsEmptyState from '../components/ProjectsEmptyState';
-import ProjectsPageSkeleton from '../components/ProjectsPageSkeleton';
 import { useProjectsContext } from '../projects.context';
 import useProjects from '../hooks/useProjects';
-import ErrorMessage from '../../../components/common/ErrorMessage';
-import Button from '../../../components/ui/Button';
+import ErrorState from '../../../components/common/ErrorState';
+import EmptyState from '../../../components/common/EmptyState';
+import { PageSkeleton } from '../../../components/common/Skeleton';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
 
 // ── Section label ────────────────────────────────────────────────────────────
 const SectionLabel = ({ children, count }) => (
@@ -63,14 +63,21 @@ const ProjectsPage = () => {
   const [status, setStatus]   = useState('all');
   const [sort, setSort]       = useState('updated');
 
+  const [projectToDelete, setProjectToDelete] = useState(null);
+
   useEffect(() => {
     handleFetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const confirmDelete = (id) => {
-    if (window.confirm('Delete this project? This cannot be undone.')) {
-      handleDeleteProject(id);
+    setProjectToDelete(id);
+  };
+
+  const executeDelete = () => {
+    if (projectToDelete) {
+      handleDeleteProject(projectToDelete);
+      setProjectToDelete(null);
     }
   };
 
@@ -115,21 +122,15 @@ const ProjectsPage = () => {
   return (
     <DashboardLayout>
       {/* ── Loading state ── */}
-      {loading && <ProjectsPageSkeleton count={6} />}
+      {loading && <PageSkeleton />}
 
       {/* ── Error state ── */}
       {!loading && error && (
-        <div className="animate-fade-in">
-          <ErrorMessage message="Unable to load your projects." className="mb-4" />
-          <Button
-            id="projects-retry-btn"
-            variant="secondary"
-            size="sm"
-            onClick={handleFetchProjects}
-          >
-            ↺ Try Again
-          </Button>
-        </div>
+        <ErrorState
+          title="Unable to load projects"
+          message={error.message || "Something went wrong while loading your projects."}
+          onRetry={handleFetchProjects}
+        />
       )}
 
       {/* ── Main content ── */}
@@ -150,11 +151,23 @@ const ProjectsPage = () => {
           )}
 
           {/* ── Empty workspace (no projects at all) ── */}
-          {showEmpty && <ProjectsEmptyState isFiltered={false} />}
+          {showEmpty && (
+            <EmptyState 
+              title="No projects found"
+              description="You haven't created any projects yet."
+              actionText="Create Project"
+              actionTo="/projects/new"
+            />
+          )}
 
           {/* ── No filter results ── */}
           {showFiltered && (
-            <ProjectsEmptyState isFiltered onClear={clearFilters} />
+            <EmptyState 
+              title="No matching projects"
+              description="No projects match your current filters."
+              actionText="Clear Filters"
+              onAction={clearFilters}
+            />
           )}
 
           {/* ── Project grid ── */}
@@ -186,6 +199,16 @@ const ProjectsPage = () => {
           )}
         </>
       )}
+
+      <ConfirmDialog 
+        isOpen={!!projectToDelete}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone."
+        confirmText="Delete Project"
+        onConfirm={executeDelete}
+        onCancel={() => setProjectToDelete(null)}
+        isPending={loading}
+      />
     </DashboardLayout>
   );
 };

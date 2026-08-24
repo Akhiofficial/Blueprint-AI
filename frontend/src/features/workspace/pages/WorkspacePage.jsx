@@ -31,6 +31,7 @@ import DocumentViewer from '../components/DocumentViewer';
 import ChatPanel from '../components/ChatPanel';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import ExportDialog from '../components/ExportDialog';
+import ErrorState from '../../../components/common/ErrorState';
 
 // ─── Workspace loading skeleton ───────────────────────────────────────────────
 
@@ -161,36 +162,13 @@ const WorkspacePage = () => {
       {statusLoading ? (
         <WorkspaceSkeleton />
       ) : statusError ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-20">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-              <path d="M10 7v4M10 13.5h.01" stroke="#F87171" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M3 17L10 3l7 14H3z" stroke="#F87171" strokeWidth="1.3" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <h2 className="text-sm font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
-            Unable to load blueprint
-          </h2>
-          <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            We couldn't load your blueprint documents. Please try again.
-          </p>
-          <button
-            id="ws-retry-btn"
-            onClick={loadStatuses}
-            className="text-xs px-4 py-2 rounded-lg font-medium transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: 'rgba(255,255,255,0.65)',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.11)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
-          >
-            ↺ Try Again
-          </button>
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <ErrorState 
+            title="Unable to load blueprint"
+            message="We couldn't load your blueprint documents. Please try again."
+            onRetry={loadStatuses}
+            className="w-full max-w-md"
+          />
         </div>
       ) : (
         <div className="flex flex-1 min-h-0 overflow-hidden">
