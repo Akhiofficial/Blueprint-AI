@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchVersionHistory } from '../services/workspaceService';
 
-const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion }) => {
+const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion, width = 320 }) => {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +30,7 @@ const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion }) => {
     <aside
       className="hidden xl:flex flex-col ws-enter-right"
       style={{
-        width: 320,
+        width: width,
         background: '#0D1117',
         borderLeft: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,

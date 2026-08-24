@@ -43,7 +43,7 @@ const ChatMessage = ({ msg }) => {
   );
 };
 
-const ChatPanel = ({ projectId, activeDocId, onDocumentRefined }) => {
+const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -119,7 +119,7 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined }) => {
     <aside
       className="hidden xl:flex flex-col ws-enter-right"
       style={{
-        width: 320, // Slightly wider than ContextPanel for comfortable chat
+        width: width,
         background: '#0D1117',
         borderLeft: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,

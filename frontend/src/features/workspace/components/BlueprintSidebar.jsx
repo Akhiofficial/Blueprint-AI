@@ -70,6 +70,7 @@ const BlueprintSidebar = ({
   onSelectDoc,
   isOpen,        // mobile drawer open state
   onClose,
+  width = 220,
 }) => {
   const handleSelect = (docId) => {
     onSelectDoc(docId);
@@ -97,7 +98,7 @@ const BlueprintSidebar = ({
           ws-enter-left
         `}
         style={{
-          width: 220,
+          width: width,
           background: '#0D1117',
           borderRight: '1px solid rgba(255,255,255,0.07)',
           paddingTop: 0,
