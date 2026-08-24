@@ -51,9 +51,9 @@ const StatusDot = ({ status }) => {
 
 const StatusLabel = ({ status }) => {
   const labels = {
-    ready:         { text: 'Ready',     color: '#34D399' },
-    generating:    { text: 'Generating',color: '#60A5FA' },
-    failed:        { text: 'Failed',    color: '#F87171' },
+    ready: { text: 'Ready', color: '#34D399' },
+    generating: { text: 'Generating', color: '#60A5FA' },
+    failed: { text: 'Failed', color: '#F87171' },
     not_generated: { text: 'Not generated', color: 'rgba(255,255,255,0.2)' },
   };
   const cfg = labels[status] || labels.not_generated;
@@ -106,7 +106,7 @@ const BlueprintSidebar = ({
       >
         {/* Header */}
         <div
-          className="px-4 py-4"
+          className="px-4 py-4 flex items-center justify-between"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           <p
@@ -115,6 +115,17 @@ const BlueprintSidebar = ({
           >
             Blueprint Artifacts
           </p>
+          {/* Mobile close button */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 text-gray-400 hover:text-white cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         {/* Navigation items */}

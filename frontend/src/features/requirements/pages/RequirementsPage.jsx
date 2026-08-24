@@ -60,69 +60,7 @@ const BLUR_STYLE = {
 // ── Minimum character threshold ───────────────────────────────────────────────
 const MIN_CHARS = 30;
 
-// ── Workflow step indicator ───────────────────────────────────────────────────
-const WORKFLOW_STEPS = [
-  { num: '01', label: 'Project' },
-  { num: '02', label: 'Requirements' },
-  { num: '03', label: 'Analysis' },
-  { num: '04', label: 'Blueprint' },
-];
-
-const WorkflowIndicator = ({ current = 1 }) => (
-  <div className="flex items-center mb-8" aria-label="Workflow progress">
-    {WORKFLOW_STEPS.map((step, i) => {
-      const isActive = i === current;
-      const isPast   = i < current;
-      const isLast   = i === WORKFLOW_STEPS.length - 1;
-      return (
-        <div key={step.num} className="flex items-center">
-          <div className="flex flex-col items-center gap-1">
-            <span
-              className="bp-mono"
-              style={{
-                fontSize: '0.55rem',
-                letterSpacing: '0.1em',
-                color: isActive ? '#22D3EE' : isPast ? 'rgba(34,211,238,0.45)' : 'rgba(255,255,255,0.15)',
-              }}
-            >
-              {step.num}
-            </span>
-            <span
-              className="text-xs hidden sm:block"
-              style={{
-                fontWeight: isActive ? 500 : 400,
-                color: isActive ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.2)',
-              }}
-            >
-              {step.label}
-            </span>
-            <div
-              style={{
-                height: '1.5px',
-                width: '100%',
-                background: isActive ? 'linear-gradient(90deg,#3B82F6,#22D3EE)' : 'transparent',
-                borderRadius: '1px',
-                marginTop: '1px',
-              }}
-            />
-          </div>
-          {!isLast && (
-            <div
-              style={{
-                width: '2rem',
-                height: '1px',
-                background: isPast ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.07)',
-                margin: '0 0.5rem',
-                marginBottom: '0.75rem',
-                flexShrink: 0,
-              }}
-            />
-          )}
-        </div>
-      );
-    })}
-  </div>
-);
+import WorkflowIndicator from '../../../components/common/WorkflowIndicator';
 
 // ── Section label ─────────────────────────────────────────────────────────────
 const SectionLabel = ({ children }) => (

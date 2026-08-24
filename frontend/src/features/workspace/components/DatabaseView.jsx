@@ -332,32 +332,34 @@ const SchemaTab = ({ entities }) => (
         </div>
 
         {/* Fields table */}
-        <table className="ws-entity-table">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Type</th>
-              <th>Constraint</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entity.fields.map((field) => (
-              <tr key={field.name}>
-                <td>
-                  <span className="bp-mono text-xs" style={{ color: field.constraint?.includes('PK') ? '#22D3EE' : field.constraint?.includes('FK') ? '#C084FC' : 'rgba(255,255,255,0.8)' }}>
-                    {field.name}
-                  </span>
-                </td>
-                <td>
-                  <span className="bp-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{field.type}</span>
-                </td>
-                <td>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{field.constraint}</span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="ws-entity-table min-w-full">
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Constraint</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {entity.fields.map((field) => (
+                <tr key={field.name}>
+                  <td>
+                    <span className="bp-mono text-xs" style={{ color: field.constraint?.includes('PK') ? '#22D3EE' : field.constraint?.includes('FK') ? '#C084FC' : 'rgba(255,255,255,0.8)' }}>
+                      {field.name}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="bp-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{field.type}</span>
+                  </td>
+                  <td>
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{field.constraint}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     ))}
 

@@ -46,24 +46,26 @@ const ParamsTable = ({ params }) => {
       >
         Query Parameters
       </p>
-      <table className="ws-entity-table">
-        <thead>
-          <tr>
-            <th>Parameter</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map(([key, val]) => (
-            <tr key={key}>
-              <td>
-                <span className="bp-mono text-xs" style={{ color: '#22D3EE' }}>{key}</span>
-              </td>
-              <td style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem' }}>{val}</td>
+      <div className="overflow-x-auto">
+        <table className="ws-entity-table min-w-full">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Description</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {entries.map(([key, val]) => (
+              <tr key={key}>
+                <td>
+                  <span className="bp-mono text-xs" style={{ color: '#22D3EE' }}>{key}</span>
+                </td>
+                <td style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem' }}>{val}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
