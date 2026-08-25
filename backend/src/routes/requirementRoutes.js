@@ -1,21 +1,25 @@
-/**
- * requirementRoutes.js
- *
- * API route definitions for requirements.
- * These routes are nested under projects: /api/projects/:projectId/requirements
- *
- * TODO: Implement in Phase 2 — Requirements feature.
- *   Wire into app.js once requirementController is implemented.
- */
 import express from 'express';
+import { protect } from '../middleware/authMiddleware.js';
+import {
+  createRequirement,
+  getRequirements,
+  getRequirement,
+  updateRequirement,
+  deleteRequirement,
+} from '../controllers/requirementController.js';
 
-const router = express.Router({ mergeParams: true }); // mergeParams to access :projectId
+const router = express.Router({ mergeParams: true }); // Access :projectId from parent router
 
-// TODO: import { protect } from '../middleware/authMiddleware.js';
-// TODO: import * as requirementController from '../controllers/requirementController.js';
+// All requirement routes require authentication
+router.use(protect);
 
-// router.use(protect);
-// router.route('/').get(...).post(...);
-// router.route('/:id').get(...).put(...).delete(...);
+router.route('/')
+  .get(getRequirements)
+  .post(createRequirement);
+
+router.route('/:id')
+  .get(getRequirement)
+  .put(updateRequirement)
+  .delete(deleteRequirement);
 
 export default router;

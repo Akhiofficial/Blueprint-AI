@@ -7,6 +7,7 @@ import { authRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
+import requirementRoutes from './routes/requirementRoutes.js';
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use(cookieParser());
 // ── API routers
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/projects/:projectId/requirements', requirementRoutes);
 
 // ── Health check
 app.get('/api/health', (req, res) => {

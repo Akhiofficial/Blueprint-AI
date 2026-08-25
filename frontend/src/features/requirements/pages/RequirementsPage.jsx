@@ -283,14 +283,17 @@ const RequirementsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  // ── Load saved text from localStorage ────────────────────────────────────
+  // ── Load saved text from API ────────────────────────────────────
   useEffect(() => {
     if (!projectId) return;
-    const saved = loadRequirements(projectId);
-    if (saved.text) {
-      setText(saved.text);
-      setLastSaved(saved.updatedAt);
-    }
+    let isMounted = true;
+    loadRequirements(projectId).then((saved) => {
+      if (isMounted && saved.text) {
+        setText(saved.text);
+        setLastSaved(saved.updatedAt);
+      }
+    });
+    return () => { isMounted = false; };
   }, [projectId]);
 
   // ── Auto-save on text change (debounced 800ms) ────────────────────────────
@@ -299,8 +302,11 @@ const RequirementsPage = () => {
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (text.trim()) {
-        const saved = saveRequirements(projectId, text);
-        setLastSaved(saved.updatedAt);
+        saveRequirements(projectId, text).then((saved) => {
+          if (saved && saved.updatedAt) {
+            setLastSaved(saved.updatedAt);
+          }
+        }).catch(err => console.error(err));
       }
     }, 800);
     return () => clearTimeout(saveTimerRef.current);
@@ -364,8 +370,8 @@ const RequirementsPage = () => {
         setTextError(`Please add at least ${MIN_CHARS} characters to continue.`);
         return;
       }
-      // Persist to localStorage
-      saveRequirements(projectId, text);
+      // Persist to API
+      await saveRequirements(projectId, text);
       setLastSaved(new Date().toISOString());
     }
 

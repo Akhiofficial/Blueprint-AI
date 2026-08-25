@@ -1,70 +1,84 @@
-/**
- * requirementService.js
- *
- * Requirements data layer.
- *
- * PHASE 2 NOTE:
- * The backend requirement API (POST /api/projects/:projectId/requirements)
- * is not yet implemented. Until it is, requirements text is persisted in
- * localStorage keyed by projectId. This file is the single point to swap
- * out localStorage for real API calls once the backend is ready.
- *
- * Replace the functions below with axios calls when Phase 2 is complete.
- */
-
-const STORAGE_KEY = (projectId) => `bp_requirements_${projectId}`;
+import api from '../../../services/api';
 
 /**
- * Load saved requirements text for a project.
+ * Load saved requirements text for a project from the API.
  * @param {string} projectId
- * @returns {{ text: string, updatedAt: string|null }}
+ * @returns {Promise<{ text: string, updatedAt: string|null }>}
  */
-export const loadRequirements = (projectId) => {
+export const loadRequirements = async (projectId) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY(projectId));
-    if (!raw) return { text: '', updatedAt: null };
-    return JSON.parse(raw);
-  } catch {
+    const response = await api.get(`/api/projects/${projectId}/requirements`);
+    const requirements = response.data.data;
+    if (requirements && requirements.length > 0) {
+      return { 
+        text: requirements[0].description || '', 
+        updatedAt: requirements[0].updatedAt 
+      };
+    }
+    return { text: '', updatedAt: null };
+  } catch (err) {
+    console.error('Failed to load requirements:', err);
     return { text: '', updatedAt: null };
   }
 };
 
 /**
- * Persist requirements text for a project.
+ * Persist requirements text for a project via the API.
  * @param {string} projectId
  * @param {string} text
+ * @returns {Promise<{ text: string, updatedAt: string|null }>}
  */
-export const saveRequirements = (projectId, text) => {
-  const data = { text, updatedAt: new Date().toISOString() };
-  localStorage.setItem(STORAGE_KEY(projectId), JSON.stringify(data));
-  return data;
+export const saveRequirements = async (projectId, text) => {
+  try {
+    const response = await api.get(`/api/projects/${projectId}/requirements`);
+    const requirements = response.data.data;
+
+    let savedReq;
+    if (requirements && requirements.length > 0) {
+      const reqId = requirements[0]._id;
+      const updateRes = await api.put(`/api/projects/${projectId}/requirements/${reqId}`, {
+        description: text
+      });
+      savedReq = updateRes.data.data;
+    } else {
+      const createRes = await api.post(`/api/projects/${projectId}/requirements`, {
+        requirementId: `REQ-${Date.now()}`,
+        title: 'Project Requirements',
+        type: 'functional',
+        description: text,
+      });
+      savedReq = createRes.data.data;
+    }
+    return { text: savedReq.description, updatedAt: savedReq.updatedAt };
+  } catch (err) {
+    console.error('Failed to save requirements:', err);
+    throw err;
+  }
 };
 
 /**
- * Clear saved requirements for a project.
+ * Clear saved requirements for a project via the API.
  * @param {string} projectId
  */
-export const clearRequirements = (projectId) => {
-  localStorage.removeItem(STORAGE_KEY(projectId));
+export const clearRequirements = async (projectId) => {
+  try {
+    const response = await api.get(`/api/projects/${projectId}/requirements`);
+    const requirements = response.data.data;
+    if (requirements && requirements.length > 0) {
+      await api.delete(`/api/projects/${projectId}/requirements/${requirements[0]._id}`);
+    }
+  } catch (err) {
+    console.error('Failed to clear requirements:', err);
+  }
 };
 
-// ── Supported file types ─────────────────────────────────────────────────────
 export const ACCEPTED_MIME_TYPES = [
   'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
-
 export const ACCEPTED_EXTENSIONS = ['.pdf', '.docx'];
-
-// Max file size: 10 MB (align with typical Multer defaults)
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-/**
- * Validate an uploaded File object.
- * Returns an error string if invalid, null if valid.
- * @param {File} file
- * @returns {string|null}
- */
 export const validateFile = (file) => {
   if (!file) return 'Please select a file.';
   if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
@@ -76,16 +90,7 @@ export const validateFile = (file) => {
   return null;
 };
 
-/**
- * Read a text file's content as a string.
- * For PDF/DOCX, real parsing requires the backend.
- * This returns a stub acknowledgment for Phase 1.
- * @param {File} file
- * @returns {Promise<string>}
- */
 export const readFileAsText = (file) =>
   new Promise((resolve) => {
-    // Phase 1: we cannot parse PDF/DOCX on the client without external libs.
-    // Acknowledge the upload and let the user know processing happens server-side.
     resolve(`[File uploaded: ${file.name} — ${(file.size / 1024).toFixed(1)} KB]\n\nNote: Full document parsing will be available when the backend processing API is ready.`);
   });
