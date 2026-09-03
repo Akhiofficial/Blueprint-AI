@@ -1,7 +1,50 @@
 import api from '../../../services/api';
 
 /**
+ * requirementService.js — API layer for the requirements feature.
+ *
+ * This is the ONLY file in the requirements feature that imports the API client.
+ * Hooks call these functions. Components never import this file directly.
+ */
+
+// ── File validation constants ─────────────────────────────────────────────────
+
+export const ACCEPTED_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+];
+
+export const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt'];
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Client-side file validation before sending to the backend.
+ * The backend also validates — this is a fast UX guard, not the security layer.
+ *
+ * @param {File} file
+ * @returns {string|null} Error message, or null if valid
+ */
+export const validateFile = (file) => {
+  if (!file) return 'Please select a file.';
+
+  if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+    return 'Unsupported file type. Please upload a PDF, DOCX, or TXT file.';
+  }
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return 'File is too large. Please choose a file under 10 MB.';
+  }
+
+  return null;
+};
+
+// ── Text requirement persistence ──────────────────────────────────────────────
+
+/**
  * Load saved requirements text for a project from the API.
+ * Returns the first requirement's description field (the text entered in the editor).
+ *
  * @param {string} projectId
  * @returns {Promise<{ text: string, updatedAt: string|null }>}
  */
@@ -10,9 +53,9 @@ export const loadRequirements = async (projectId) => {
     const response = await api.get(`/api/projects/${projectId}/requirements`);
     const requirements = response.data.data;
     if (requirements && requirements.length > 0) {
-      return { 
-        text: requirements[0].description || '', 
-        updatedAt: requirements[0].updatedAt 
+      return {
+        text: requirements[0].description || '',
+        updatedAt: requirements[0].updatedAt,
       };
     }
     return { text: '', updatedAt: null };
@@ -24,6 +67,9 @@ export const loadRequirements = async (projectId) => {
 
 /**
  * Persist requirements text for a project via the API.
+ * If a requirement already exists for the project, updates it.
+ * If none exists, creates a new one.
+ *
  * @param {string} projectId
  * @param {string} text
  * @returns {Promise<{ text: string, updatedAt: string|null }>}
@@ -36,9 +82,10 @@ export const saveRequirements = async (projectId, text) => {
     let savedReq;
     if (requirements && requirements.length > 0) {
       const reqId = requirements[0]._id;
-      const updateRes = await api.put(`/api/projects/${projectId}/requirements/${reqId}`, {
-        description: text
-      });
+      const updateRes = await api.put(
+        `/api/projects/${projectId}/requirements/${reqId}`,
+        { description: text }
+      );
       savedReq = updateRes.data.data;
     } else {
       const createRes = await api.post(`/api/projects/${projectId}/requirements`, {
@@ -49,6 +96,7 @@ export const saveRequirements = async (projectId, text) => {
       });
       savedReq = createRes.data.data;
     }
+
     return { text: savedReq.description, updatedAt: savedReq.updatedAt };
   } catch (err) {
     console.error('Failed to save requirements:', err);
@@ -58,6 +106,7 @@ export const saveRequirements = async (projectId, text) => {
 
 /**
  * Clear saved requirements for a project via the API.
+ *
  * @param {string} projectId
  */
 export const clearRequirements = async (projectId) => {
@@ -65,32 +114,41 @@ export const clearRequirements = async (projectId) => {
     const response = await api.get(`/api/projects/${projectId}/requirements`);
     const requirements = response.data.data;
     if (requirements && requirements.length > 0) {
-      await api.delete(`/api/projects/${projectId}/requirements/${requirements[0]._id}`);
+      await api.delete(
+        `/api/projects/${projectId}/requirements/${requirements[0]._id}`
+      );
     }
   } catch (err) {
     console.error('Failed to clear requirements:', err);
   }
 };
 
-export const ACCEPTED_MIME_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
-export const ACCEPTED_EXTENSIONS = ['.pdf', '.docx'];
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+// ── Document upload ───────────────────────────────────────────────────────────
 
-export const validateFile = (file) => {
-  if (!file) return 'Please select a file.';
-  if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
-    return 'This file type isn\'t supported. Please upload a PDF or DOCX document.';
-  }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return 'This file is too large. Please choose a file under 10 MB.';
-  }
-  return null;
+/**
+ * Upload a requirement document to the backend for text extraction.
+ *
+ * The backend extracts text from the file and returns it so the frontend
+ * can immediately populate the write-mode editor.
+ *
+ * @param {string} projectId
+ * @param {File}   file        - The File object from the browser's file input
+ * @returns {Promise<{ knowledgeDocId: string, filename: string, fileType: string, extractedText: string }>}
+ */
+export const uploadDocument = async (projectId, file) => {
+  // Build multipart/form-data — Axios detects FormData and sets the correct
+  // Content-Type header (including boundary) automatically.
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post(
+    `/api/projects/${projectId}/requirements/upload`,
+    formData,
+    {
+      // Override the default 'application/json' header so Axios sends multipart
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }
+  );
+
+  return response.data.data;
 };
-
-export const readFileAsText = (file) =>
-  new Promise((resolve) => {
-    resolve(`[File uploaded: ${file.name} — ${(file.size / 1024).toFixed(1)} KB]\n\nNote: Full document parsing will be available when the backend processing API is ready.`);
-  });

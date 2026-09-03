@@ -8,7 +8,7 @@ const createRequirementSchema = z.object({
     required_error: 'Type is required',
   }),
   priority: z.enum(['must-have', 'should-have', 'could-have', 'wont-have']).optional().default('must-have'),
-  status: z.enum(['draft', 'approved', 'rejected']).optional().default('draft'),
+  status: z.enum(['draft', 'reviewed', 'approved', 'rejected']).optional().default('draft'),
   source: z.string().trim().optional().default('user'),
 });
 

@@ -21,6 +21,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import DashboardLayout from '../../../layouts/DashboardLayout';
 import { useProjectsContext } from '../../projects/projects.context';
 import useProjects from '../../projects/hooks/useProjects';
+import useRequirements from '../hooks/useRequirements';
 import {
   loadRequirements,
   saveRequirements,
@@ -256,6 +257,13 @@ const RequirementsPage = () => {
   const navigate = useNavigate();
   const { currentProject, loading: projectLoading } = useProjectsContext();
   const { handleFetchProjectById } = useProjects();
+  const {
+    uploadState,
+    uploadError,
+    uploadedDoc,
+    handleUploadDocument,
+    resetUpload,
+  } = useRequirements();
 
   // ── Mode: 'write' | 'upload' ──────────────────────────────────────────────
   const [mode, setMode] = useState('write');
@@ -345,6 +353,7 @@ const RequirementsPage = () => {
   const handleRemoveFile = () => {
     setFile(null);
     setFileError('');
+    resetUpload(); // clear hook state when user removes the file
   };
 
   // ── Switch mode ───────────────────────────────────────────────────────────
@@ -353,6 +362,7 @@ const RequirementsPage = () => {
     setTextError('');
     setFileError('');
     setSubmitError('');
+    resetUpload();
   };
 
   // ── Validate and submit ───────────────────────────────────────────────────
@@ -370,9 +380,17 @@ const RequirementsPage = () => {
         setTextError(`Please add at least ${MIN_CHARS} characters to continue.`);
         return;
       }
-      // Persist to API
-      await saveRequirements(projectId, text);
-      setLastSaved(new Date().toISOString());
+      setIsSubmitting(true);
+      try {
+        await saveRequirements(projectId, text);
+        setLastSaved(new Date().toISOString());
+        navigate(`/projects/${projectId}/analysis`);
+      } catch {
+        setSubmitError('Something went wrong saving requirements. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
     }
 
     if (mode === 'upload') {
@@ -380,19 +398,26 @@ const RequirementsPage = () => {
         setFileError('Please select a file before continuing.');
         return;
       }
-    }
-
-    // Navigate to AI Analysis (Phase 2 route)
-    // Phase 2: the analysis page will read from localStorage or call the API.
-    setIsSubmitting(true);
-    try {
-      // Simulate a brief save acknowledgment before navigation
-      await new Promise((r) => setTimeout(r, 400));
-      navigate(`/projects/${projectId}/analysis`);
-    } catch {
-      setSubmitError('Something went wrong. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      // Upload the file — the hook manages uploading/success/error states
+      setIsSubmitting(true);
+      try {
+        const result = await handleUploadDocument(projectId, file);
+        if (result) {
+          // Populate the write-mode editor with the extracted text so the
+          // user can review and edit it before running AI analysis.
+          setText(result.extractedText);
+          // Save the extracted text as a requirement record
+          await saveRequirements(projectId, result.extractedText);
+          setLastSaved(new Date().toISOString());
+          // Switch to write mode so the user can see and edit the extracted text
+          setMode('write');
+          setFile(null);
+        }
+      } catch {
+        setSubmitError('Upload failed. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -572,37 +597,91 @@ const RequirementsPage = () => {
                     Already have a requirements document? Upload it here.
                   </p>
 
-                  <UploadZone
-                    file={file}
-                    onFile={handleFileSelect}
-                    onRemove={handleRemoveFile}
-                    error={fileError}
-                    isDragging={isDragging}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  />
+                  {/* Hide drop zone while upload is in progress or complete */}
+                  {uploadState !== 'uploading' && uploadState !== 'success' && (
+                    <UploadZone
+                      file={file}
+                      onFile={handleFileSelect}
+                      onRemove={handleRemoveFile}
+                      error={fileError}
+                      isDragging={isDragging}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    />
+                  )}
 
-                  {/* Phase 2 note */}
-                  <div
-                    className="mt-5 flex gap-2.5 rounded-lg p-3.5"
-                    style={{
-                      background: 'rgba(59,130,246,0.05)',
-                      border: '1px solid rgba(59,130,246,0.12)',
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden className="shrink-0 mt-0.5">
-                      <circle cx="7" cy="7" r="5.5" stroke="#3B82F6" strokeWidth="1.1" />
-                      <path d="M7 6v4M7 4.5v.5" stroke="#3B82F6" strokeWidth="1.1" strokeLinecap="round" />
-                    </svg>
-                    <p
-                      className="text-xs leading-relaxed"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}
+                  {/* ── Upload status feedback ── */}
+                  {uploadState === 'uploading' && (
+                    <div
+                      className="flex items-center gap-3 rounded-xl p-4"
+                      style={{
+                        background: 'rgba(59,130,246,0.05)',
+                        border: '1px solid rgba(59,130,246,0.15)',
+                        borderRadius: '10px',
+                      }}
                     >
-                      Document parsing (PDF / DOCX) will be processed server-side during analysis.
-                      Ensure your document is clearly written and in English.
-                    </p>
-                  </div>
+                      <span
+                        className="h-4 w-4 rounded-full border-2 border-white/20 border-t-blue-400 animate-spin shrink-0"
+                        aria-hidden
+                      />
+                      <div>
+                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>Uploading…</p>
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Processing document text on the server</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadState === 'success' && uploadedDoc && (
+                    <div
+                      className="flex items-start gap-3 rounded-xl p-4"
+                      style={{
+                        background: 'rgba(52,211,153,0.05)',
+                        border: '1px solid rgba(52,211,153,0.2)',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 mt-0.5">
+                        <circle cx="8" cy="8" r="6" stroke="#34D399" strokeWidth="1.2" />
+                        <path d="M5 8l2.5 2.5L11 5.5" stroke="#34D399" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                          {uploadedDoc.filename} extracted successfully
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          Text has been loaded into the editor. Switching to Write mode…
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadState === 'error' && uploadError && (
+                    <InlineError message={uploadError} />
+                  )}
+
+                  {/* Supported formats info */}
+                  {uploadState === 'idle' && (
+                    <div
+                      className="mt-5 flex gap-2.5 rounded-lg p-3.5"
+                      style={{
+                        background: 'rgba(59,130,246,0.05)',
+                        border: '1px solid rgba(59,130,246,0.12)',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden className="shrink-0 mt-0.5">
+                        <circle cx="7" cy="7" r="5.5" stroke="#3B82F6" strokeWidth="1.1" />
+                        <path d="M7 6v4M7 4.5v.5" stroke="#3B82F6" strokeWidth="1.1" strokeLinecap="round" />
+                      </svg>
+                      <p
+                        className="text-xs leading-relaxed"
+                        style={{ color: 'rgba(255,255,255,0.3)' }}
+                      >
+                        Supported formats: PDF, DOCX, TXT (max 10 MB). Text is extracted
+                        server-side and loaded into the editor for review.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -700,11 +779,11 @@ const RequirementsPage = () => {
                 {isSubmitting ? (
                   <>
                     <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" aria-hidden />
-                    Saving…
+                    {mode === 'upload' ? 'Uploading…' : 'Saving…'}
                   </>
                 ) : (
                   <>
-                    Analyze Requirements
+                    {mode === 'upload' && file ? 'Upload & Extract Text' : 'Analyze Requirements'}
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
                       <path d="M2 6h8M6.5 3L9.5 6l-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

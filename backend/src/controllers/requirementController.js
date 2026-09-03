@@ -115,3 +115,50 @@ export {
   updateRequirement,
   deleteRequirement,
 };
+
+/**
+ * @desc    Upload a requirement document (PDF / DOCX / TXT) for a project.
+ *          Extracts the text content and persists a KnowledgeDocument record.
+ * @route   POST /api/projects/:projectId/requirements/upload
+ * @access  Private
+ *
+ * Note: Multer errors (file too large, wrong type) are NOT caught by asyncHandler
+ * because multer calls next(err) before the controller body runs.
+ * We therefore register a dedicated error-handling wrapper in the route instead.
+ */
+const uploadRequirementDoc = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const ownerId = req.user._id;
+
+  // req.file is populated by upload.single('file') in the route
+  if (!req.file) {
+    res.status(400);
+    throw new Error('No file was uploaded. Please attach a PDF, DOCX, or TXT file.');
+  }
+
+  const result = await requirementService.uploadRequirementDocument(
+    projectId,
+    ownerId,
+    req.file // { buffer, originalname, mimetype, size }
+  );
+
+  if (!result) {
+    res.status(404);
+    throw new Error('Project not found or you do not have access to it.');
+  }
+
+  const { knowledgeDoc, extractedText } = result;
+
+  res.status(201).json({
+    success: true,
+    data: {
+      knowledgeDocId: knowledgeDoc._id,
+      filename: knowledgeDoc.name,
+      fileType: knowledgeDoc.fileType,
+      extractedText,
+    },
+  });
+});
+
+export { uploadRequirementDoc };
+

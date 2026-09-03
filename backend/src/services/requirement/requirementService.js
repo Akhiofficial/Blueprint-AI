@@ -1,5 +1,7 @@
 import Requirement from '../../models/Requirement.js';
 import Project from '../../models/Project.js';
+import KnowledgeDocument from '../../models/KnowledgeDocument.js';
+import { extractText } from './extractTextService.js';
 
 /**
  * Creates a new requirement.
@@ -85,3 +87,43 @@ export const deleteRequirement = async (projectId, requirementId, ownerId) => {
   await requirement.deleteOne();
   return true;
 };
+
+/**
+ * Handles a requirement document upload for a project.
+ *
+ * Flow:
+ *  1. Verify the authenticated user owns the project.
+ *  2. Extract plain text from the uploaded file buffer.
+ *  3. Persist a KnowledgeDocument record as the source document.
+ *  4. Return the created record and the extracted text.
+ *
+ * @param {string} projectId          - Project ID
+ * @param {string} ownerId            - Authenticated user's ID
+ * @param {{ originalname, mimetype, size, buffer }} fileInfo  - From req.file (multer memoryStorage)
+ * @returns {Promise<{ knowledgeDoc: Object, extractedText: string } | null>}
+ *          null when project not found or user is not the owner.
+ */
+export const uploadRequirementDocument = async (projectId, ownerId, fileInfo) => {
+  // Step 1 — ownership gate (same pattern used by every other function in this file)
+  const project = await Project.findOne({ _id: projectId, owner: ownerId });
+  if (!project) return null;
+
+  // Step 2 — extract text (throws descriptive errors on failure / empty doc)
+  const extractedText = await extractText(fileInfo.buffer, fileInfo.mimetype);
+
+  // Step 3 — persist source document metadata
+  // KnowledgeDocument is the existing model for uploaded source files.
+  // We set chunkCount=0 and status='indexed' because chunking/embeddings
+  // are out of scope for this phase.
+  const knowledgeDoc = await KnowledgeDocument.create({
+    project: projectId,
+    name: fileInfo.originalname,
+    fileType: fileInfo.mimetype,
+    source: 'upload',
+    status: 'indexed',
+    chunkCount: 0,
+  });
+
+  return { knowledgeDoc, extractedText };
+};
+
