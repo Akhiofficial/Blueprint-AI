@@ -1,48 +1,58 @@
 /**
- * analysisService.js
+ * brdService.js
  *
- * Backend service for analyzing project requirements.
- * Manages project ownership verification, database requirement querying,
- * generation record persistence, and delegates AI execution to requirementAnalyzer.
+ * Backend service for generating Business Requirements Documents (BRD).
+ * Manages project ownership checks, prerequisite requirement analysis fetching,
+ * concurrency checks, Generation record persistence, and delegates AI generation to brdGenerator.
  */
 
 import Project from '../../models/Project.js';
-import Requirement from '../../models/Requirement.js';
 import Generation from '../../models/Generation.js';
 import { env } from '../../config/env.js';
-import { analyzeRequirements } from '../../engine/analyzers/requirementAnalyzer.js';
-import { buildRequirementContext } from '../../engine/context/requirementContext.js';
+import { generateBRDDocument } from '../../engine/generators/brdGenerator.js';
 
 /**
- * Analyzes stored requirements for a given project.
+ * Generates a Business Requirements Document (BRD) for a project.
  *
  * @param {string} projectId - Project ID
  * @param {string} ownerId   - Authenticated user's ID
  * @returns {Promise<{ status: string, data?: Object, error?: string, generationId?: string }>}
  */
-export const analyzeProjectRequirements = async (projectId, ownerId) => {
+export const generateBRD = async (projectId, ownerId) => {
   // Step 1: Verify project ownership
   const project = await Project.findOne({ _id: projectId, owner: ownerId });
   if (!project) {
-    return { status: 'unauthorized' };
+    return { status: 'unauthorized', error: 'Project not found or unauthorized' };
   }
 
-  // Step 2: Fetch project requirements
-  const requirements = await Requirement.find({ project: projectId }).sort({ createdAt: 1 });
+  // Step 2: Fetch latest completed Requirement Analysis
+  const latestAnalysis = await Generation.findOne({
+    project: projectId,
+    generationType: 'requirement-analysis',
+    status: 'completed',
+  }).sort({ createdAt: -1 });
 
-  // Normalize requirement text content using the context builder
-  const combinedText = buildRequirementContext(requirements);
+  if (!latestAnalysis || !latestAnalysis.output) {
+    return { status: 'no_analysis', error: 'No completed requirement analysis found for this project.' };
+  }
 
-  if (!combinedText || combinedText.length < 10) {
-    return { status: 'no_requirements' };
+  // Check for currently running BRD generation to prevent duplicate concurrent runs
+  const runningBRD = await Generation.findOne({
+    project: projectId,
+    generationType: 'brd',
+    status: 'running',
+  });
+
+  if (runningBRD) {
+    return { status: 'in_progress', error: 'BRD generation is already in progress for this project.' };
   }
 
   const modelName = env.GEMINI_MODEL || 'gemini-3.6-flash';
 
-  // Step 3: Create a pending Generation record
+  // Step 3: Create running Generation record
   const generation = await Generation.create({
     project: projectId,
-    generationType: 'requirement-analysis',
+    generationType: 'brd',
     model: modelName,
     status: 'running',
     promptVersion: '1.0',
@@ -51,9 +61,9 @@ export const analyzeProjectRequirements = async (projectId, ownerId) => {
   const startTime = Date.now();
 
   try {
-    // Step 4: Delegate AI prompt building, Gemini execution, and Zod validation to requirementAnalyzer
-    const analysisResult = await analyzeRequirements(
-      combinedText,
+    // Step 4: Delegate AI prompt building, Gemini execution, and Zod validation to brdGenerator
+    const result = await generateBRDDocument(
+      latestAnalysis.output,
       {
         title: project.title,
         description: project.description,
@@ -61,24 +71,25 @@ export const analyzeProjectRequirements = async (projectId, ownerId) => {
       modelName
     );
 
-    if (!analysisResult.success) {
+    if (!result.success) {
       generation.status = 'failed';
-      generation.error = analysisResult.error;
+      generation.error = result.error;
       generation.durationMs = Date.now() - startTime;
       await generation.save();
 
       return { status: 'validation_error', error: generation.error };
     }
 
-    // Step 5: Persist validated analysis output
+    // Step 5: Persist validated BRD output
     generation.status = 'completed';
-    generation.output = analysisResult.data;
+    generation.output = result.data;
+    generation.error = null;
     generation.durationMs = Date.now() - startTime;
     await generation.save();
 
     return {
       status: 'success',
-      data: analysisResult.data,
+      data: result.data,
       generationId: generation._id,
     };
   } catch (err) {
@@ -92,13 +103,13 @@ export const analyzeProjectRequirements = async (projectId, ownerId) => {
 };
 
 /**
- * Retrieves the latest completed requirement analysis for a project.
+ * Retrieves the latest completed BRD for a project.
  *
  * @param {string} projectId - Project ID
  * @param {string} ownerId   - Authenticated user's ID
  * @returns {Promise<{ status: string, data?: Object, updatedAt?: string }>}
  */
-export const getLatestAnalysis = async (projectId, ownerId) => {
+export const getLatestBRD = async (projectId, ownerId) => {
   const project = await Project.findOne({ _id: projectId, owner: ownerId });
   if (!project) {
     return { status: 'unauthorized' };
@@ -106,7 +117,7 @@ export const getLatestAnalysis = async (projectId, ownerId) => {
 
   const latest = await Generation.findOne({
     project: projectId,
-    generationType: 'requirement-analysis',
+    generationType: 'brd',
     status: 'completed',
   }).sort({ createdAt: -1 });
 
