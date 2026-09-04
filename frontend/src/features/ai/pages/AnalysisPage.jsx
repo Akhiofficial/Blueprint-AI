@@ -3,23 +3,19 @@
  *
  * Route: /projects/:id/analysis
  *
- * Step 4 in the BlueprintAI workflow:
+ * Step 3 in the BlueprintAI workflow:
  *   01 Project → 02 Requirements → 03 Analysis → 04 Blueprint
  *
- * This page simulates the AI analysis of requirements, displaying a
- * structured breakdown of functional/non-functional requirements,
- * user roles, and core modules.
- *
- * It uses isolated, labeled [DEMO] mock data via `analysisService.js`
- * since the Blueprint Engine (Phase 3) is not yet implemented.
+ * Displays the AI-structured requirement analysis from the Blueprint Engine backend.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../layouts/DashboardLayout';
 import { useProjectsContext } from '../../projects/projects.context';
 import useProjects from '../../projects/hooks/useProjects';
-import { analyzeRequirements, ANALYSIS_STAGES } from '../services/analysisService';
+import { analyzeRequirements, getLatestAnalysis, ANALYSIS_STAGES } from '../services/analysisService';
+import WorkflowIndicator from '../../../components/common/WorkflowIndicator';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const CARD_STYLE = {
@@ -39,8 +35,6 @@ const SECTION_LABEL_STYLE = {
   marginBottom: '1rem',
 };
 
-import WorkflowIndicator from '../../../components/common/WorkflowIndicator';
-
 // ── Components: Processing State ─────────────────────────────────────────────
 const ProcessingView = ({ stageIndex }) => {
   return (
@@ -51,7 +45,7 @@ const ProcessingView = ({ stageIndex }) => {
         </div>
         <div>
           <h2 className="text-xl font-bold text-slate-100">Analyzing requirements...</h2>
-          <p className="text-sm text-slate-400">Blueprint Engine is structuring your project.</p>
+          <p className="text-sm text-slate-400">Blueprint Engine is structuring your project requirements.</p>
         </div>
       </div>
 
@@ -59,7 +53,6 @@ const ProcessingView = ({ stageIndex }) => {
         {ANALYSIS_STAGES.map((stage, idx) => {
           const isCompleted = idx < stageIndex;
           const isActive = idx === stageIndex;
-          const isPending = idx > stageIndex;
 
           let icon;
           let colorStyle;
@@ -106,66 +99,99 @@ const StatCard = ({ label, value }) => (
   </div>
 );
 
-const RequirementList = ({ requirements, isFunctional }) => (
-  <div className="overflow-x-auto">
-    <table className="w-full text-left text-sm border-collapse">
-      <thead>
-        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <th className="py-3 px-4 font-medium text-slate-400" style={{ width: '12%' }}>ID</th>
-          <th className="py-3 px-4 font-medium text-slate-400" style={{ width: '25%' }}>Title</th>
-          <th className="py-3 px-4 font-medium text-slate-400">Description</th>
-          <th className="py-3 px-4 font-medium text-slate-400 text-right" style={{ width: '15%' }}>
-            {isFunctional ? 'Actor' : 'Category'}
-          </th>
-        </tr>
-      </thead>
-      <tbody style={{ color: 'rgba(255,255,255,0.75)' }}>
-        {requirements.map((req) => (
-          <tr key={req.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <td className="py-4 px-4 align-top">
-              <span className="bp-mono text-xs text-slate-500">{req.id}</span>
-            </td>
-            <td className="py-4 px-4 align-top font-medium text-slate-200">
-              {req.title.replace('[DEMO] ', '')}
-            </td>
-            <td className="py-4 px-4 align-top leading-relaxed text-slate-400">
-              {req.description}
-            </td>
-            <td className="py-4 px-4 align-top text-right">
-              <span
-                className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.6)',
-                }}
-              >
-                {isFunctional ? req.actor : req.category}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+const RequirementList = ({ requirements, isFunctional }) => {
+  if (!requirements || requirements.length === 0) {
+    return <p className="text-sm text-slate-500 italic">None identified.</p>;
+  }
 
-const EntityGrid = ({ items }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {items.map((item) => (
-      <div
-        key={item.id}
-        className="p-4 rounded-xl"
-        style={{
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.05)',
-        }}
-      >
-        <p className="font-medium text-slate-200 mb-1">{item.name.replace('[DEMO] ', '')}</p>
-        <p className="text-sm text-slate-400 leading-relaxed">{item.description}</p>
-      </div>
-    ))}
-  </div>
-);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm border-collapse">
+        <thead>
+          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <th className="py-3 px-4 font-medium text-slate-400" style={{ width: '12%' }}>ID</th>
+            <th className="py-3 px-4 font-medium text-slate-400" style={{ width: '25%' }}>Title</th>
+            <th className="py-3 px-4 font-medium text-slate-400">Description</th>
+            <th className="py-3 px-4 font-medium text-slate-400 text-right" style={{ width: '18%' }}>
+              {isFunctional ? 'Actor' : 'Category'}
+            </th>
+          </tr>
+        </thead>
+        <tbody style={{ color: 'rgba(255,255,255,0.75)' }}>
+          {requirements.map((req, idx) => (
+            <tr key={req.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <td className="py-4 px-4 align-top">
+                <span className="bp-mono text-xs text-slate-500">{req.id || `${isFunctional ? 'FR' : 'NFR'}-${idx + 1}`}</span>
+              </td>
+              <td className="py-4 px-4 align-top font-medium text-slate-200">
+                {req.title}
+              </td>
+              <td className="py-4 px-4 align-top leading-relaxed text-slate-400">
+                {req.description}
+              </td>
+              <td className="py-4 px-4 align-top text-right">
+                <span
+                  className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}
+                >
+                  {isFunctional ? req.actor : req.category}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const EntityGrid = ({ items, nameKey = 'name', descKey = 'description' }) => {
+  if (!items || items.length === 0) {
+    return <p className="text-sm text-slate-500 italic">None identified.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {items.map((item, idx) => (
+        <div
+          key={item.id || idx}
+          className="p-4 rounded-xl"
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <p className="font-medium text-slate-200 mb-1">{item[nameKey]}</p>
+          {item[descKey] && <p className="text-sm text-slate-400 leading-relaxed">{item[descKey]}</p>}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const StringListCard = ({ title, items, badgeColor = 'rgba(59,130,246,0.1)' }) => {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div style={CARD_STYLE} className="p-6">
+      <h2 style={SECTION_LABEL_STYLE}>{title}</h2>
+      <ul className="space-y-2">
+        {items.map((item, idx) => (
+          <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-300">
+            <span
+              className="inline-block shrink-0 rounded-full mt-1.5"
+              style={{ width: 6, height: 6, background: badgeColor }}
+            />
+            <span className="leading-relaxed">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 // ── Main Page Component ───────────────────────────────────────────────────────
 const AnalysisPage = () => {
@@ -176,22 +202,41 @@ const AnalysisPage = () => {
 
   // ── States ──
   const [status, setStatus] = useState('idle'); // idle | processing | completed | error
+  const [errorMessage, setErrorMessage] = useState('');
   const [stageIndex, setStageIndex] = useState(0);
   const [analysisData, setAnalysisData] = useState(null);
-  const [showSource, setShowSource] = useState(false);
 
   // ── Initialization ──
   useEffect(() => {
     if (!currentProject || currentProject._id !== projectId) {
       handleFetchProjectById(projectId);
     }
-    // Auto-start analysis on mount for this mockup
-    startAnalysis();
+    loadOrCreateAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  const loadOrCreateAnalysis = async () => {
+    setStatus('processing');
+    setErrorMessage('');
+    try {
+      // 1. Try to fetch existing analysis
+      const existing = await getLatestAnalysis(projectId);
+      if (existing) {
+        setAnalysisData(existing);
+        setStatus('completed');
+        return;
+      }
+      // 2. If no existing analysis, trigger fresh analysis
+      startAnalysis();
+    } catch {
+      // If fetching fails, attempt fresh analysis
+      startAnalysis();
+    }
+  };
+
   const startAnalysis = async () => {
     setStatus('processing');
+    setErrorMessage('');
     setStageIndex(0);
     try {
       const data = await analyzeRequirements(projectId, (idx) => {
@@ -201,6 +246,7 @@ const AnalysisPage = () => {
       setStatus('completed');
     } catch (error) {
       console.error(error);
+      setErrorMessage(error.message || 'We could not analyze your requirements at this time.');
       setStatus('error');
     }
   };
@@ -233,16 +279,40 @@ const AnalysisPage = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
-            Requirement Analysis
-          </h1>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              Requirement Analysis
+            </h1>
+            {analysisData?.complexity && (
+              <span
+                className="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase bp-mono"
+                style={{
+                  background:
+                    analysisData.complexity === 'high'
+                      ? 'rgba(239,68,68,0.15)'
+                      : analysisData.complexity === 'medium'
+                      ? 'rgba(245,158,11,0.15)'
+                      : 'rgba(52,211,153,0.15)',
+                  color:
+                    analysisData.complexity === 'high'
+                      ? '#F87171'
+                      : analysisData.complexity === 'medium'
+                      ? '#FBBF24'
+                      : '#34D399',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {analysisData.complexity} Complexity
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-400">
             {status === 'completed'
               ? 'BlueprintAI has structured your project requirements.'
               : 'Transforming requirements into structured software context.'}
           </p>
         </div>
-        
+
         {status === 'completed' && (
           <div className="flex items-center gap-3">
             <button
@@ -290,38 +360,49 @@ const AnalysisPage = () => {
           <div style={CARD_STYLE} className="p-8 text-center animate-fade-in">
             <div className="text-red-400 text-3xl mb-4">⚠️</div>
             <h2 className="text-lg font-semibold text-slate-200 mb-2">Analysis Failed</h2>
-            <p className="text-slate-400 text-sm mb-6">We couldn't analyze your requirements at this time.</p>
-            <button
-              onClick={startAnalysis}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition-colors text-slate-200"
-            >
-              Try Again
-            </button>
+            <p className="text-slate-400 text-sm mb-6 max-w-md mx-auto">{errorMessage}</p>
+            <div className="flex justify-center gap-3">
+              <Link
+                to={`/projects/${projectId}/requirements`}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition-colors text-slate-200"
+              >
+                Edit Requirements
+              </Link>
+              <button
+                onClick={startAnalysis}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors text-white"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         )}
 
         {status === 'completed' && analysisData && (
           <div className="space-y-6 animate-slide-up">
-            
-            {/* Demo Notice */}
-            <div className="p-3 rounded-lg flex items-center justify-center gap-2 text-xs" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}>
-              <span className="font-bold">PHASE 3 NOTICE:</span> This is a mock UI structure. Blueprint Engine integration will populate actual data.
-            </div>
 
-            {/* Summary Cards */}
+            {/* Summary Block */}
+            {analysisData.summary && (
+              <div style={CARD_STYLE} className="p-6">
+                <h2 style={SECTION_LABEL_STYLE}>Executive Summary</h2>
+                <p className="text-slate-300 text-sm leading-relaxed">{analysisData.summary}</p>
+              </div>
+            )}
+
+            {/* Summary Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard label="Functional" value={analysisData.summary.functional} />
-              <StatCard label="Non-Functional" value={analysisData.summary.nonFunctional} />
-              <StatCard label="User Roles" value={analysisData.summary.roles} />
-              <StatCard label="Core Modules" value={analysisData.summary.modules} />
+              <StatCard label="Functional" value={analysisData.functionalRequirements?.length || 0} />
+              <StatCard label="Non-Functional" value={analysisData.nonFunctionalRequirements?.length || 0} />
+              <StatCard label="User Actors" value={analysisData.actors?.length || 0} />
+              <StatCard label="Domain Entities" value={analysisData.entities?.length || 0} />
             </div>
 
             {/* Layout Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Left Column (Main lists) */}
               <div className="lg:col-span-2 space-y-6">
-                
+
                 {/* Functional Requirements */}
                 <div style={CARD_STYLE} className="p-6">
                   <h2 style={SECTION_LABEL_STYLE}>Functional Requirements</h2>
@@ -334,41 +415,31 @@ const AnalysisPage = () => {
                   <RequirementList requirements={analysisData.nonFunctionalRequirements} isFunctional={false} />
                 </div>
 
+                {/* Business Goals & Constraints */}
+                <StringListCard title="Business Goals" items={analysisData.businessGoals} badgeColor="#34D399" />
+                <StringListCard title="Constraints" items={analysisData.constraints} badgeColor="#F87171" />
+                <StringListCard title="Technology Hints" items={analysisData.technologyHints} badgeColor="#22D3EE" />
+
               </div>
 
-              {/* Right Column (Entities & Source) */}
+              {/* Right Column (Entities & Context) */}
               <div className="space-y-6">
-                
+
                 {/* User Roles */}
                 <div style={CARD_STYLE} className="p-6">
-                  <h2 style={SECTION_LABEL_STYLE}>Identified Roles</h2>
-                  <EntityGrid items={analysisData.roles} />
+                  <h2 style={SECTION_LABEL_STYLE}>Identified Actors</h2>
+                  <EntityGrid items={analysisData.actors} nameKey="name" descKey="description" />
                 </div>
 
-                {/* Core Modules */}
+                {/* Domain Entities */}
                 <div style={CARD_STYLE} className="p-6">
-                  <h2 style={SECTION_LABEL_STYLE}>Core Modules</h2>
-                  <EntityGrid items={analysisData.modules} />
+                  <h2 style={SECTION_LABEL_STYLE}>Domain Entities</h2>
+                  <EntityGrid items={analysisData.entities} nameKey="name" descKey="description" />
                 </div>
 
-                {/* Source Requirements Accordion */}
-                <div style={CARD_STYLE} className="overflow-hidden">
-                  <button
-                    className="w-full p-4 flex items-center justify-between text-left transition-colors"
-                    style={{ background: showSource ? 'rgba(255,255,255,0.02)' : 'transparent' }}
-                    onClick={() => setShowSource(!showSource)}
-                  >
-                    <span style={{ ...SECTION_LABEL_STYLE, marginBottom: 0 }}>Source Requirements</span>
-                    <span className="text-slate-500 text-lg leading-none">{showSource ? '−' : '+'}</span>
-                  </button>
-                  {showSource && (
-                    <div className="p-4 border-t border-white/5 bg-white/[0.01]">
-                      <p className="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed">
-                        {analysisData.originalRequirements}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* Risks & Ambiguities */}
+                <StringListCard title="Risks" items={analysisData.risks} badgeColor="#F87171" />
+                <StringListCard title="Ambiguities" items={analysisData.ambiguities} badgeColor="#FBBF24" />
 
               </div>
             </div>

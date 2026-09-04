@@ -7,6 +7,8 @@ import {
   updateRequirement,
   deleteRequirement,
   uploadRequirementDoc,
+  analyzeRequirements,
+  getLatestAnalysis,
 } from '../controllers/requirementController.js';
 import upload from '../middleware/uploadMiddleware.js';
 
@@ -20,16 +22,14 @@ router.route('/')
   .get(getRequirements)
   .post(createRequirement);
 
+// ── AI Requirement Analysis ───────────────────────────────────────────────────
+// IMPORTANT: These routes MUST be declared before /:id
+router.post('/analyze', analyzeRequirements);
+router.get('/analysis', getLatestAnalysis);
+
 // ── Document Upload ───────────────────────────────────────────────────────────
 // IMPORTANT: This route MUST be declared before /:id so that Express does not
 // try to treat the literal string "upload" as a Mongo ObjectId.
-//
-// upload.single('file') is multer middleware — it parses the multipart/form-data
-// request and puts the file in req.file before uploadRequirementDoc runs.
-//
-// Multer errors (file too large, wrong MIME) bypass asyncHandler because multer
-// calls next(err) internally. The multerErrorHandler below converts those errors
-// into JSON responses with the correct HTTP status codes.
 router.post(
   '/upload',
   upload.single('file'),

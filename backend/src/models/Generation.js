@@ -34,6 +34,14 @@ const generationSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    output: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    error: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -1,5 +1,6 @@
 import asyncHandler from '../utils/asyncHandler.js';
 import * as requirementService from '../services/requirement/requirementService.js';
+import * as analysisService from '../services/requirement/analysisService.js';
 import { createRequirementSchema, updateRequirementSchema } from '../validators/requirementValidator.js';
 
 /**
@@ -108,29 +109,15 @@ const deleteRequirement = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Requirement removed' });
 });
 
-export {
-  createRequirement,
-  getRequirements,
-  getRequirement,
-  updateRequirement,
-  deleteRequirement,
-};
-
 /**
  * @desc    Upload a requirement document (PDF / DOCX / TXT) for a project.
- *          Extracts the text content and persists a KnowledgeDocument record.
  * @route   POST /api/projects/:projectId/requirements/upload
  * @access  Private
- *
- * Note: Multer errors (file too large, wrong type) are NOT caught by asyncHandler
- * because multer calls next(err) before the controller body runs.
- * We therefore register a dedicated error-handling wrapper in the route instead.
  */
 const uploadRequirementDoc = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const ownerId = req.user._id;
 
-  // req.file is populated by upload.single('file') in the route
   if (!req.file) {
     res.status(400);
     throw new Error('No file was uploaded. Please attach a PDF, DOCX, or TXT file.');
@@ -139,7 +126,7 @@ const uploadRequirementDoc = asyncHandler(async (req, res) => {
   const result = await requirementService.uploadRequirementDocument(
     projectId,
     ownerId,
-    req.file // { buffer, originalname, mimetype, size }
+    req.file
   );
 
   if (!result) {
@@ -160,5 +147,81 @@ const uploadRequirementDoc = asyncHandler(async (req, res) => {
   });
 });
 
-export { uploadRequirementDoc };
+/**
+ * @desc    Analyze project requirements using Gemini AI
+ * @route   POST /api/projects/:projectId/requirements/analyze
+ * @access  Private
+ */
+const analyzeRequirements = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const ownerId = req.user._id;
+
+  const result = await analysisService.analyzeProjectRequirements(projectId, ownerId);
+
+  if (result.status === 'unauthorized') {
+    res.status(404);
+    throw new Error('Project not found or unauthorized');
+  }
+
+  if (result.status === 'no_requirements') {
+    res.status(400);
+    throw new Error('No usable requirements found for this project. Please add or upload requirements first.');
+  }
+
+  if (result.status === 'validation_error') {
+    res.status(422);
+    throw new Error(result.error || 'AI generated response failed validation.');
+  }
+
+  if (result.status === 'service_error') {
+    res.status(500);
+    throw new Error(result.error || 'Failed to analyze requirements.');
+  }
+
+  res.status(200).json({
+    success: true,
+    data: result.data,
+    generationId: result.generationId,
+  });
+});
+
+/**
+ * @desc    Get the latest completed requirement analysis for a project
+ * @route   GET /api/projects/:projectId/requirements/analysis
+ * @access  Private
+ */
+const getLatestAnalysis = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const ownerId = req.user._id;
+
+  const result = await analysisService.getLatestAnalysis(projectId, ownerId);
+
+  if (result.status === 'unauthorized') {
+    res.status(404);
+    throw new Error('Project not found or unauthorized');
+  }
+
+  if (result.status === 'not_found') {
+    res.status(404);
+    throw new Error('No requirement analysis found for this project.');
+  }
+
+  res.status(200).json({
+    success: true,
+    data: result.data,
+    generationId: result.generationId,
+    updatedAt: result.updatedAt,
+  });
+});
+
+export {
+  createRequirement,
+  getRequirements,
+  getRequirement,
+  updateRequirement,
+  deleteRequirement,
+  uploadRequirementDoc,
+  analyzeRequirements,
+  getLatestAnalysis,
+};
 

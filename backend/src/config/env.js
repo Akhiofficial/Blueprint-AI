@@ -32,8 +32,9 @@ export const env = {
   // Auth
   JWT_SECRET: process.env.JWT_SECRET,
 
-  // ── AI (populated in Phase 2 when Gemini/RAG is integrated) ──
-  // GEMINI_API_KEY:  process.env.GEMINI_API_KEY,
-  // PINECONE_API_KEY: process.env.PINECONE_API_KEY,
-  // PINECONE_INDEX:   process.env.PINECONE_INDEX,
+  // AI
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || '',
+  PINECONE_API_KEY: process.env.PINECONE_API_KEY || '',
+  PINECONE_INDEX: process.env.PINECONE_INDEX || '',
 };
