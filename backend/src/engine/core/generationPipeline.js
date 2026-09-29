@@ -23,6 +23,8 @@ export const runPipeline = async ({ prompt, systemInstruction, schema, modelName
     const actualProvider = rawResult?.provider || 'unknown';
 
     if (schema) {
+      // DEBUG: log raw output to inspect LLM field values on validation failure
+      console.log('[GenerationPipeline] RAW OUTPUT SAMPLE:', JSON.stringify(rawOutput).slice(0, 800));
       const parsed = schema.safeParse(rawOutput);
       if (!parsed.success) {
         const validationError = parsed.error.issues
