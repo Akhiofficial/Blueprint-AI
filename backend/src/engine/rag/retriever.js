@@ -11,6 +11,7 @@ import KnowledgeChunk from '../../models/KnowledgeChunk.js';
 export const retrieveRelevantChunks = async (projectId, query, topK = 5) => {
   // 1. Generate query embedding
   const queryVector = await generateEmbedding(query);
+  if (!queryVector || !queryVector.length) return [];
 
   // 2. Query Pinecone for relevant vector IDs
   // We use projectId as a filter to ensure multitenant isolation

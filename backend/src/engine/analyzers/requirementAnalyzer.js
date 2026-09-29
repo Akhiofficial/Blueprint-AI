@@ -2,15 +2,15 @@
  * requirementAnalyzer.js
  *
  * Analyzes and classifies project requirements using Gemini AI.
- * Encapsulates prompt assembly, LLM execution, and Zod output validation.
+ * Encapsulates prompt assembly and delegates execution to generationPipeline.
  */
 
 import { SYSTEM_INSTRUCTION, buildRequirementAnalysisPrompt } from '../prompts/requirementAnalysis.prompt.js';
-import { generateJSON } from '../providers/geminiProvider.js';
 import { requirementAnalysisSchema } from '../../validators/analysisValidator.js';
+import { runPipeline } from '../core/generationPipeline.js';
 
 /**
- * Executes requirement analysis via Gemini AI and validates the structured output.
+ * Executes requirement analysis.
  *
  * @param {string} combinedText - Normalized requirement text content
  * @param {Object} [projectInfo] - Optional project metadata ({ title, description })
@@ -20,26 +20,10 @@ import { requirementAnalysisSchema } from '../../validators/analysisValidator.js
 export const analyzeRequirements = async (combinedText, projectInfo = {}, modelName) => {
   const prompt = buildRequirementAnalysisPrompt(combinedText, projectInfo);
 
-  const rawOutput = await generateJSON({
+  return await runPipeline({
     prompt,
     systemInstruction: SYSTEM_INSTRUCTION,
+    schema: requirementAnalysisSchema,
     modelName,
   });
-
-  const parsed = requirementAnalysisSchema.safeParse(rawOutput);
-  if (!parsed.success) {
-    const validationError = parsed.error.issues
-      .map((i) => `${i.path.join('.')}: ${i.message}`)
-      .join(', ');
-
-    return {
-      success: false,
-      error: `AI output validation failed: ${validationError}`,
-    };
-  }
-
-  return {
-    success: true,
-    data: parsed.data,
-  };
 };

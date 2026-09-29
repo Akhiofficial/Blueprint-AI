@@ -13,16 +13,21 @@ export const generateEmbedding = async (text) => {
   
   const ai = new GoogleGenAI({ apiKey });
   
-  const response = await ai.models.embedContent({
-    model: 'text-embedding-004',
-    contents: text
-  });
-  
-  if (!response || !response.embeddings || !response.embeddings[0] || !response.embeddings[0].values) {
-    throw new Error('Failed to generate embedding');
+  try {
+    const response = await ai.models.embedContent({
+      model: 'gemini-embedding-001',
+      contents: text
+    });
+    
+    if (!response || !response.embeddings || !response.embeddings[0] || !response.embeddings[0].values) {
+      throw new Error('Failed to generate embedding');
+    }
+    
+    return response.embeddings[0].values;
+  } catch (err) {
+    console.warn(`[EmbeddingService] Could not generate embedding: ${err.message}`);
+    return [];
   }
-  
-  return response.embeddings[0].values;
 };
 
 export const generateEmbeddings = async (texts) => {

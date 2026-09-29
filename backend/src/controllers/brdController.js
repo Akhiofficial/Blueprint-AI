@@ -32,15 +32,16 @@ export const generateBRD = asyncHandler(async (req, res) => {
     throw new Error(result.error || 'AI generated BRD failed validation.');
   }
 
-  if (result.status === 'service_error') {
+  if (result.status === 'service_error' || result.status === 'engine_error') {
     res.status(500);
-    throw new Error(result.error || 'Failed to generate BRD.');
+    throw new Error(result.error || 'Failed to generate BRD due to an internal engine error.');
   }
 
   res.status(200).json({
     success: true,
     data: result.data,
     generationId: result.generationId,
+    generationType: 'brd',
   });
 });
 

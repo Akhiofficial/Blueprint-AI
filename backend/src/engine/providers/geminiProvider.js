@@ -31,15 +31,18 @@ export const generateJSON = async ({ prompt, systemInstruction, modelName }) => 
   const primaryModel = modelName || env.GEMINI_MODEL || 'gemini-3.6-flash';
   const modelCandidates = [
     primaryModel,
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-flash-latest',
-  ].filter((m, idx, self) => self.indexOf(m) === idx);
+    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+  ].filter((m, idx, self) => Boolean(m) && self.indexOf(m) === idx);
 
   let lastError = null;
 
   for (const targetModel of modelCandidates) {
-    // Retry up to 2 times per candidate model for temporary 503 / 429 errors
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    console.log(`[GeminiProvider] Trying model: ${targetModel}`);
+    // Retry up to 3 times per candidate model for temporary 503 / 429 errors
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const response = await ai.models.generateContent({
           model: targetModel,
@@ -54,7 +57,11 @@ export const generateJSON = async ({ prompt, systemInstruction, modelName }) => 
           throw new Error('Empty response received from Gemini API.');
         }
 
-        return JSON.parse(response.text);
+        // Clean JSON response (strip markdown code fence if wrapped)
+        const cleanedText = response.text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+        const data = JSON.parse(cleanedText);
+        console.log(`[GeminiProvider] SUCCESS — model=${targetModel}, attempt=${attempt}`);
+        return { data, model: targetModel };
       } catch (err) {
         lastError = err;
         const errMessage = err.message || '';
@@ -64,17 +71,19 @@ export const generateJSON = async ({ prompt, systemInstruction, modelName }) => 
           errMessage.includes('429') ||
           errMessage.includes('RESOURCE_EXHAUSTED');
 
-        if (isTemporary && attempt < 2) {
-          console.warn(`[GeminiProvider] ${targetModel} attempt ${attempt} failed. Retrying in 1s...`);
-          await wait(1000 * attempt);
+        if (isTemporary && attempt < 3) {
+          const delayMs = attempt * 1500;
+          console.warn(`[GeminiProvider] ${targetModel} attempt ${attempt} failed (${errMessage}). Retrying in ${delayMs}ms...`);
+          await wait(delayMs);
           continue;
         }
 
-        console.warn(`[GeminiProvider] ${targetModel} failed. Trying fallback model...`);
+        console.warn(`[GeminiProvider] Model ${targetModel} failed: ${errMessage}`);
         break;
       }
     }
   }
 
-  throw new Error(`Gemini API request failed across all models: ${lastError?.message || 'Unknown error'}`);
+  console.error('[GeminiProvider] EXHAUSTED — all Gemini models failed');
+  throw new Error(`Gemini API provider exhausted: ${lastError?.message || 'Rate limit or service unavailable'}`);
 };

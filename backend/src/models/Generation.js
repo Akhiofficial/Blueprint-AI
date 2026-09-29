@@ -17,6 +17,10 @@ const generationSchema = new mongoose.Schema(
       required: [true, 'Generation type is required'],
       trim: true,
     },
+    provider: {
+      type: String,
+      default: '',
+    },
     model: {
       type: String,
       default: '',

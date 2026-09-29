@@ -32,9 +32,14 @@ export const env = {
   // Auth
   JWT_SECRET: process.env.JWT_SECRET,
 
-  // AI
+  // AI Providers & Models
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  GEMINI_MODEL: process.env.GEMINI_MODEL || '',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+  GROQ_API_KEY: process.env.GROQ_API_KEY || '',
+  GROQ_MODEL: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
+  OPENROUTER_MODEL: process.env.OPENROUTER_MODEL || 'inclusionai/ling-3.0-flash-sante:free',
+  LLM_FALLBACK_ORDER: process.env.LLM_FALLBACK_ORDER || 'gemini,groq,openrouter',
   PINECONE_API_KEY: process.env.PINECONE_API_KEY || '',
   PINECONE_INDEX: process.env.PINECONE_INDEX || '',
 };
