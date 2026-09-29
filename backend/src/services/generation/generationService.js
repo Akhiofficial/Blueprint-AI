@@ -14,12 +14,11 @@ import { env } from '../../config/env.js';
 import * as blueprintEngine from '../../engine/core/blueprintEngine.js';
 
 // Generation types that have been fully implemented inside blueprintEngine
-const IMPLEMENTED_TYPES = new Set(['brd', 'srs', 'user-stories']);
+const IMPLEMENTED_TYPES = new Set(['brd', 'srs', 'user-stories', 'api']);
 
 // All known but not-yet-implemented document generation types
 const KNOWN_FUTURE_TYPES = new Set([
-  'api', 'database',
-  'architecture', 'roadmap', 'test-cases', 'use-cases',
+  'database', 'architecture', 'roadmap', 'test-cases', 'use-cases',
 ]);
 
 /**

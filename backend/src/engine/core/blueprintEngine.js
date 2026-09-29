@@ -11,6 +11,7 @@ import { analyzeRequirements } from '../analyzers/requirementAnalyzer.js';
 import { generateBRDDocument } from '../generators/brdGenerator.js';
 import { generateSRSDocument } from '../generators/srsGenerator.js';
 import { generateUserStoriesDocument } from '../generators/userStoryGenerator.js';
+import { generateApiDocument } from '../generators/apiGenerator.js';
 
 /**
  * Executes the requested generation workflow.
@@ -87,7 +88,22 @@ export const execute = async ({ projectId, generationType, modelName }) => {
       return { data: result.data, model: result.model, provider: result.provider };
     }
 
-    case 'api':
+    case 'api': {
+      const srsOutput = context.documents['srs'];
+      if (!srsOutput) {
+        throw new Error("Missing prerequisite: srs is required to generate API Specification.");
+      }
+
+      let ragContext = '';
+      if (context.project?.description) {
+        ragContext = await retrieveRelevantContext(projectId, context.project.description);
+      }
+
+      const result = await generateApiDocument(srsOutput, context.project, ragContext, modelName);
+      if (!result.success) throw new Error(result.error);
+      return { data: result.data, model: result.model, provider: result.provider };
+    }
+
     case 'database':
     case 'architecture':
     case 'roadmap':
