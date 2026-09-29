@@ -89,7 +89,8 @@ export const execute = async ({ projectId, generationType, modelName }) => {
       return { data: result.data, model: result.model, provider: result.provider };
     }
 
-    case 'api': {
+    case 'api':
+    case 'api-design': {
       const srsOutput = context.documents['srs'];
       if (!srsOutput) {
         throw new Error("Missing prerequisite: srs is required to generate API Specification.");
@@ -120,12 +121,6 @@ export const execute = async ({ projectId, generationType, modelName }) => {
       if (!result.success) throw new Error(result.error);
       return { data: result.data, model: result.model, provider: result.provider };
     }
-
-    case 'architecture':
-    case 'roadmap':
-    case 'test-cases':
-    case 'use-cases':
-      throw new Error(`Generation type '${generationType}' is not implemented yet.`);
 
     default:
       throw new Error(`Unsupported generation type: '${generationType}'`);

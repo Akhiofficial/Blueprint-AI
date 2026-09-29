@@ -13,12 +13,14 @@ import Generation from '../../models/Generation.js';
 import { env } from '../../config/env.js';
 import * as blueprintEngine from '../../engine/core/blueprintEngine.js';
 
-// Generation types that have been fully implemented inside blueprintEngine
-const IMPLEMENTED_TYPES = new Set(['brd', 'srs', 'user-stories', 'api', 'database']);
-
-// All known but not-yet-implemented document generation types
-const KNOWN_FUTURE_TYPES = new Set([
-  'architecture', 'roadmap', 'test-cases', 'use-cases',
+// Authoritative supported document generation types (locked to project synopsis scope)
+export const SUPPORTED_GENERATION_TYPES = new Set([
+  'brd',
+  'srs',
+  'user-stories',
+  'api',
+  'api-design',
+  'database',
 ]);
 
 /**
@@ -26,20 +28,15 @@ const KNOWN_FUTURE_TYPES = new Set([
  *
  * @param {string} projectId      - MongoDB project ID
  * @param {string} ownerId        - Authenticated user's ID
- * @param {string} generationType - e.g. 'brd', 'srs'
+ * @param {string} generationType - e.g. 'brd', 'srs', 'user-stories', 'api', 'database'
  * @returns {Promise<{status: string, data?: Object, error?: string, generationId?: string}>}
  */
 export const generateDocument = async (projectId, ownerId, generationType) => {
-  // Step 1: Validate generation type is known
-  if (!IMPLEMENTED_TYPES.has(generationType) && !KNOWN_FUTURE_TYPES.has(generationType)) {
-    return { status: 'unsupported_type', error: `Unknown generation type: '${generationType}'` };
-  }
-
-  // Step 2: Validate that this type is currently implemented
-  if (!IMPLEMENTED_TYPES.has(generationType)) {
+  // Step 1: Validate generation type is within authorized scope
+  if (!SUPPORTED_GENERATION_TYPES.has(generationType)) {
     return {
-      status: 'not_implemented',
-      error: `Generation type '${generationType}' is not implemented yet.`,
+      status: 'unsupported_type',
+      error: `Unsupported generation type: '${generationType}'. BlueprintAI supports: brd, srs, user-stories, api-design, database.`,
     };
   }
 

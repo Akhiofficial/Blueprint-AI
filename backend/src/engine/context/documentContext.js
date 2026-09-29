@@ -7,18 +7,15 @@
 
 import Generation from '../../models/Generation.js';
 
-// Define expected prerequisites for each generation type.
+// Define expected prerequisites for each supported generation type.
 // Keys MUST match the generationType strings used in blueprintEngine.js.
 const PREREQUISITES = {
   'brd': ['requirement-analysis'],
   'srs': ['brd'],
   'user-stories': ['srs'],
   'api': ['srs'],
+  'api-design': ['srs'],
   'database': ['srs'],
-  'architecture': ['srs'],
-  'roadmap': ['brd', 'architecture'],
-  'test-cases': ['user-stories', 'api'],
-  'use-cases': ['srs'],
 };
 
 export const buildDocumentContext = async (projectId, generationType) => {
