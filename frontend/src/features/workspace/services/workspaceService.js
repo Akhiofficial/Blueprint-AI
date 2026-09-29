@@ -1,23 +1,16 @@
 /**
  * workspaceService.js
  *
- * Blueprint Workspace Data Layer (Mock for Phase 2 / Phase 3 Pending)
+ * Blueprint Workspace Data Layer.
+ * Handles API communication with the backend generation engine for all 5 core document types:
+ *   1. BRD (Business Requirement Document)
+ *   2. SRS (Software Requirement Specification)
+ *   3. User Stories (Structured Story Cards)
+ *   4. REST API (API Design Specification)
+ *   5. Database (Schema & Entity Diagram)
  *
- * PHASE 3 NOTE:
- * The Blueprint AI Engine and document endpoints are not yet implemented
- * on the backend (documentRoutes.js and aiRoutes.js are stubs).
- *
- * This service provides:
- *   1. Typed, structured mock documents for all 5 blueprint artifact types.
- *   2. Simulated loading delays to demonstrate real loading states.
- *   3. Isolated, clearly-annotated [DEMO] data — never presented as real AI output.
- *
- * Migration path (Phase 3):
- *   Replace each exported function with an `api.get(...)` call.
- *   Consumer components receive the same shape — no consumer changes required.
- *
- * Document types mirror the backend Document model enum:
- *   BRD | SRS | UserStories | APISpec | DBSchema
+ * Provides typed document transformers to adapt structured backend JSON output into the formats
+ * expected by specialized viewer components (ProseDocumentView, UserStoryView, ApiDocumentView, DatabaseView).
  */
 
 import api from '../../../services/api';
@@ -27,504 +20,29 @@ import api from '../../../services/api';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BLUEPRINT_DOCS = [
-  { id: 'BRD',        num: '01', label: 'BRD',           subtitle: 'Business Requirement Document' },
-  { id: 'SRS',        num: '02', label: 'SRS',           subtitle: 'Software Requirement Specification' },
-  { id: 'UserStories',num: '03', label: 'User Stories',  subtitle: 'Structured Story Cards' },
-  { id: 'APISpec',    num: '04', label: 'REST API',      subtitle: 'API Design Specification' },
-  { id: 'DBSchema',   num: '05', label: 'Database',      subtitle: 'Schema & Entity Diagram' },
+  { id: 'BRD',         num: '01', label: 'BRD',           subtitle: 'Business Requirement Document' },
+  { id: 'SRS',         num: '02', label: 'SRS',           subtitle: 'Software Requirement Specification' },
+  { id: 'UserStories', num: '03', label: 'User Stories',  subtitle: 'Structured Story Cards' },
+  { id: 'APISpec',     num: '04', label: 'REST API',      subtitle: 'API Design Specification' },
+  { id: 'DBSchema',    num: '05', label: 'Database',      subtitle: 'Schema & Entity Diagram' },
 ];
 
-// Document status options (mirrors backend Document.status)
-// 'generating' | 'ready' | 'failed' | 'not_generated'
-// 'not_generated' is a frontend-only state (doc record does not exist yet)
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock Document Data Factory
-// Produces structured, typed document data — NOT raw markdown strings.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_BRD = {
-  type: 'BRD',
-  title: 'Business Requirement Document',
-  status: 'ready',
-  currentVersion: 2,
-  updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-  sections: [
-    {
-      id: 'brd-intro',
-      title: '1. Introduction',
-      content: 'The Campus Placement Platform (CPP) is a web-based solution designed to digitize and streamline the end-to-end campus recruitment process for educational institutions. It connects students, recruiters, and placement administrators on a unified platform, eliminating manual processes and enabling data-driven placement management.',
-    },
-    {
-      id: 'brd-objectives',
-      title: '2. Business Objectives',
-      items: [
-        'Reduce time-to-hire for campus placements by 60% through automated workflows.',
-        'Provide real-time visibility into placement drive status for all stakeholders.',
-        'Centralize student profile, resume, and academic data for recruiter access.',
-        'Enable placement administrators to manage multiple concurrent drives efficiently.',
-        'Generate placement analytics and reports for institutional leadership.',
-      ],
-    },
-    {
-      id: 'brd-problem',
-      title: '3. Problem Statement',
-      content: 'Campus placement processes currently rely on spreadsheets, email communication, and physical documentation. This leads to data inconsistency, delayed communication between students and recruiters, lost application records, and inability to track placement progress in real time. Students miss opportunities due to poor notification systems, while recruiters struggle with manual resume screening.',
-    },
-    {
-      id: 'brd-users',
-      title: '4. Target Users',
-      table: {
-        headers: ['User Type', 'Primary Role', 'Key Need'],
-        rows: [
-          ['Student', 'Job seeker / applicant', 'Discover and apply to placement opportunities'],
-          ['Recruiter', 'Company representative', 'Post jobs, review and shortlist applicants'],
-          ['Admin', 'Placement officer', 'Manage drives, users, and generate reports'],
-        ],
-      },
-    },
-    {
-      id: 'brd-scope',
-      title: '5. Business Scope',
-      content: 'The platform covers the full placement lifecycle: student onboarding, company registration, job posting, eligibility-based filtering, application submission, shortlisting, interview scheduling, and final offer management. Out of scope for Phase 1: payment processing, video interviews, and third-party ATS integration.',
-    },
-    {
-      id: 'brd-functional-overview',
-      title: '6. Functional Overview',
-      items: [
-        'Student registration and profile management with academic records.',
-        'Recruiter portal for company profile creation and job posting.',
-        'Eligibility-based job filtering (CGPA, branch, year of graduation).',
-        'Application tracking system with status updates and notifications.',
-        'Admin dashboard for drive management, student management, and analytics.',
-        'Resume upload, parsing, and structured display.',
-        'Offer letter generation and acceptance workflow.',
-      ],
-    },
-    {
-      id: 'brd-constraints',
-      title: '7. Constraints',
-      items: [
-        'Must integrate with the existing college ERP for academic data import.',
-        'All student PII must be stored within institutional servers (data residency).',
-        'System must support concurrent access by 500+ students during peak drives.',
-        'Mobile-responsive design required — students primarily use smartphones.',
-        'Initial deployment target: 3 months from project kickoff.',
-      ],
-    },
-  ],
-};
-
-const MOCK_SRS = {
-  type: 'SRS',
-  title: 'Software Requirement Specification',
-  status: 'ready',
-  currentVersion: 1,
-  updatedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-  sections: [
-    {
-      id: 'srs-intro',
-      title: '1. Introduction',
-      content: 'This Software Requirement Specification defines the functional and non-functional requirements for the Campus Placement Platform. It serves as the contractual technical baseline between the development team and stakeholders, and will be used to validate the delivered system.',
-    },
-    {
-      id: 'srs-overview',
-      title: '2. System Overview',
-      content: 'The system is a multi-role web application built on a RESTful microservice architecture. The frontend is a React SPA communicating with a Node.js/Express backend. Data is persisted in MongoDB. Authentication uses JWT tokens stored in httpOnly cookies. File storage for resumes uses cloud object storage.',
-    },
-    {
-      id: 'srs-functional',
-      title: '3. Functional Requirements',
-      table: {
-        headers: ['ID', 'Requirement', 'Priority', 'Actor'],
-        rows: [
-          ['FR-001', 'The system shall allow students to register using their institutional email address.', 'Must Have', 'Student'],
-          ['FR-002', 'The system shall enforce CGPA and branch eligibility criteria before allowing a student to apply to a job.', 'Must Have', 'System'],
-          ['FR-003', 'Recruiters shall be able to create, publish, and close job postings.', 'Must Have', 'Recruiter'],
-          ['FR-004', 'The system shall send email notifications to students when new eligible jobs are posted.', 'Should Have', 'System'],
-          ['FR-005', 'Administrators shall be able to generate placement summary reports as PDF.', 'Should Have', 'Admin'],
-          ['FR-006', 'The system shall maintain an audit trail of all application status changes.', 'Must Have', 'System'],
-        ],
-      },
-    },
-    {
-      id: 'srs-nonfunctional',
-      title: '4. Non-Functional Requirements',
-      items: [
-        'Performance: API response time ≤ 200ms for 95th percentile under normal load.',
-        'Scalability: Horizontal scaling support via containerized deployment (Docker).',
-        'Security: All passwords hashed with bcrypt (cost 10). JWT expiry: 7 days.',
-        'Availability: 99.5% uptime during placement season (Oct–Mar). SLA: 2h RTO.',
-        'Accessibility: WCAG 2.1 Level AA compliance for all student-facing pages.',
-        'Data Integrity: Optimistic locking on concurrent application status updates.',
-      ],
-    },
-    {
-      id: 'srs-roles',
-      title: '5. User Roles & Permissions',
-      table: {
-        headers: ['Role', 'Create', 'Read', 'Update', 'Delete'],
-        rows: [
-          ['Student', 'Own profile, applications', 'Jobs, own profile', 'Own profile', '—'],
-          ['Recruiter', 'Job postings', 'Applicants, jobs', 'Own job postings, applicant status', 'Own drafts'],
-          ['Admin', 'All entities', 'All entities', 'All entities', 'All entities'],
-        ],
-      },
-    },
-    {
-      id: 'srs-constraints',
-      title: '6. System Constraints',
-      items: [
-        'Database: MongoDB Atlas M10 cluster minimum for production workload.',
-        'File uploads: Maximum 5MB per resume; accepted formats: PDF, DOC, DOCX.',
-        'Browser support: Chrome 110+, Firefox 110+, Safari 16+, Edge 110+.',
-        'API rate limiting: 100 requests/minute per authenticated user.',
-        'Session management: Concurrent session limit of 3 per user account.',
-      ],
-    },
-  ],
-};
-
-const MOCK_USER_STORIES = {
-  type: 'UserStories',
-  title: 'User Stories',
-  status: 'ready',
-  currentVersion: 1,
-  updatedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-  stories: [
-    {
-      id: 'US-001',
-      title: 'Student Registration',
-      role: 'student',
-      want: 'create an account using my institutional email',
-      benefit: 'I can access placement opportunities on the platform',
-      actor: 'Student',
-      priority: 'High',
-      acceptanceCriteria: [
-        'Student can register with a valid institutional email and password.',
-        'Duplicate email addresses are rejected with a clear error message.',
-        'Successful registration creates a student profile and sends a verification email.',
-        'Unverified accounts cannot access job listings.',
-      ],
-    },
-    {
-      id: 'US-002',
-      title: 'Browse Job Listings',
-      role: 'student',
-      want: 'browse all available job postings for which I am eligible',
-      benefit: 'I can discover relevant placement opportunities quickly',
-      actor: 'Student',
-      priority: 'High',
-      acceptanceCriteria: [
-        'Student sees only jobs for which they meet the eligibility criteria (CGPA, branch).',
-        'Jobs display: company, role, CTC, deadline, and eligibility requirements.',
-        'Student can filter jobs by company name, CTC range, and job type.',
-        'Expired job postings are clearly marked and not shown by default.',
-      ],
-    },
-    {
-      id: 'US-003',
-      title: 'Submit Job Application',
-      role: 'student',
-      want: 'apply to a job with a single click',
-      benefit: 'I can quickly register my interest without re-entering information',
-      actor: 'Student',
-      priority: 'High',
-      acceptanceCriteria: [
-        'Student can apply using their existing profile and uploaded resume.',
-        'Duplicate applications to the same job are prevented.',
-        'Application confirmation is shown immediately and emailed to the student.',
-        'Student can track the status of all submitted applications.',
-      ],
-    },
-    {
-      id: 'US-004',
-      title: 'Create Job Posting',
-      role: 'recruiter',
-      want: 'create and publish job postings with eligibility criteria',
-      benefit: 'I can reach the right candidates efficiently',
-      actor: 'Recruiter',
-      priority: 'High',
-      acceptanceCriteria: [
-        'Recruiter can create a job with: title, description, CTC, deadline, and eligibility criteria.',
-        'Eligibility criteria include: minimum CGPA, allowed branches, graduation year.',
-        'Draft postings are saved and not visible to students until published.',
-        'Published jobs trigger notifications to eligible students.',
-      ],
-    },
-    {
-      id: 'US-005',
-      title: 'Review & Shortlist Applicants',
-      role: 'recruiter',
-      want: 'view and filter all applicants for my job postings',
-      benefit: 'I can efficiently identify the most suitable candidates',
-      actor: 'Recruiter',
-      priority: 'High',
-      acceptanceCriteria: [
-        'Recruiter can view all applicants for each job posting in a structured table.',
-        'Recruiter can filter applicants by CGPA, branch, and application date.',
-        'Recruiter can update application status: Shortlisted, Rejected, Selected.',
-        'Status changes trigger automatic email notifications to the student.',
-      ],
-    },
-    {
-      id: 'US-006',
-      title: 'Admin Placement Report',
-      role: 'administrator',
-      want: 'generate a placement summary report for a given date range',
-      benefit: 'I can present accurate placement statistics to institutional leadership',
-      actor: 'Admin',
-      priority: 'Medium',
-      acceptanceCriteria: [
-        'Admin can select a date range and generate a report.',
-        'Report includes: total students placed, average CTC, top recruiting companies.',
-        'Report is exportable as PDF and CSV.',
-        'Report data reflects real-time application status across all active drives.',
-      ],
-    },
-  ],
-};
-
-const MOCK_API_SPEC = {
-  type: 'APISpec',
-  title: 'REST API Design',
-  status: 'ready',
-  currentVersion: 1,
-  updatedAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-  baseUrl: '/api/v1',
-  endpoints: [
-    {
-      id: 'auth-register',
-      group: 'Authentication',
-      method: 'POST',
-      path: '/auth/register',
-      title: 'Register User',
-      description: 'Creates a new user account. Sends a verification email upon success.',
-      auth: false,
-      requestBody: {
-        name: 'string',
-        email: 'string (institutional email)',
-        password: 'string (min 8 chars)',
-        role: '"student" | "recruiter"',
-      },
-      response: {
-        success: true,
-        user: { _id: 'ObjectId', name: 'string', email: 'string', role: 'string' },
-        token: 'JWT (also set as httpOnly cookie)',
-      },
-    },
-    {
-      id: 'auth-login',
-      group: 'Authentication',
-      method: 'POST',
-      path: '/auth/login',
-      title: 'Login',
-      description: 'Authenticates a user and returns a JWT token in an httpOnly cookie.',
-      auth: false,
-      requestBody: { email: 'string', password: 'string' },
-      response: {
-        success: true,
-        user: { _id: 'ObjectId', name: 'string', email: 'string', role: 'string' },
-      },
-    },
-    {
-      id: 'jobs-list',
-      group: 'Jobs',
-      method: 'GET',
-      path: '/jobs',
-      title: 'List Eligible Jobs',
-      description: 'Returns all published jobs for which the authenticated student is eligible. Filtered by eligibility criteria server-side.',
-      auth: true,
-      queryParams: {
-        page: 'number (default: 1)',
-        limit: 'number (default: 20)',
-        search: 'string (optional)',
-        sortBy: '"deadline" | "ctc" | "createdAt" (default: createdAt)',
-      },
-      response: {
-        success: true,
-        jobs: [{ _id: 'ObjectId', title: 'string', company: 'string', ctc: 'number', deadline: 'ISO date' }],
-        total: 'number',
-        page: 'number',
-      },
-    },
-    {
-      id: 'jobs-create',
-      group: 'Jobs',
-      method: 'POST',
-      path: '/jobs',
-      title: 'Create Job Posting',
-      description: 'Creates a new job posting. Only accessible by authenticated Recruiters. Returns job in draft status.',
-      auth: true,
-      requestBody: {
-        title: 'string',
-        description: 'string',
-        ctc: 'number (LPA)',
-        deadline: 'ISO date string',
-        eligibility: { minCGPA: 'number', branches: 'string[]', graduationYear: 'number' },
-      },
-      response: {
-        success: true,
-        job: { _id: 'ObjectId', title: 'string', status: '"draft"', createdAt: 'ISO date' },
-      },
-    },
-    {
-      id: 'applications-create',
-      group: 'Applications',
-      method: 'POST',
-      path: '/jobs/:jobId/applications',
-      title: 'Submit Application',
-      description: 'Submits a job application for the authenticated student. Validates eligibility before creating the record.',
-      auth: true,
-      requestBody: { resumeId: 'ObjectId (optional, uses default resume if omitted)' },
-      response: {
-        success: true,
-        application: { _id: 'ObjectId', status: '"applied"', appliedAt: 'ISO date' },
-      },
-    },
-    {
-      id: 'applications-update-status',
-      group: 'Applications',
-      method: 'PATCH',
-      path: '/applications/:id/status',
-      title: 'Update Application Status',
-      description: 'Updates the status of an application. Only accessible by the Recruiter who owns the associated job.',
-      auth: true,
-      requestBody: { status: '"shortlisted" | "rejected" | "selected"', note: 'string (optional)' },
-      response: {
-        success: true,
-        application: { _id: 'ObjectId', status: 'string', updatedAt: 'ISO date' },
-      },
-    },
-  ],
-};
-
-const MOCK_DB_SCHEMA = {
-  type: 'DBSchema',
-  title: 'Database Schema',
-  status: 'ready',
-  currentVersion: 1,
-  updatedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-  entities: [
-    {
-      id: 'ent-user',
-      name: 'User',
-      description: 'Core authentication entity. Extended by student/recruiter profiles.',
-      fields: [
-        { name: '_id', type: 'ObjectId', constraint: 'PK' },
-        { name: 'name', type: 'String', constraint: 'Required' },
-        { name: 'email', type: 'String', constraint: 'Unique, Required' },
-        { name: 'password', type: 'String', constraint: 'Bcrypt hashed' },
-        { name: 'role', type: 'Enum', constraint: 'student | recruiter | admin' },
-        { name: 'isVerified', type: 'Boolean', constraint: 'Default: false' },
-        { name: 'createdAt', type: 'Date', constraint: 'Auto' },
-        { name: 'updatedAt', type: 'Date', constraint: 'Auto' },
-      ],
-      relations: ['Job (via createdBy)', 'Application (via student)'],
-    },
-    {
-      id: 'ent-job',
-      name: 'Job',
-      description: 'Job posting created by a recruiter. Contains eligibility criteria.',
-      fields: [
-        { name: '_id', type: 'ObjectId', constraint: 'PK' },
-        { name: 'createdBy', type: 'ObjectId', constraint: 'FK → User (Recruiter)' },
-        { name: 'title', type: 'String', constraint: 'Required' },
-        { name: 'description', type: 'String', constraint: '' },
-        { name: 'ctc', type: 'Number', constraint: 'LPA' },
-        { name: 'deadline', type: 'Date', constraint: 'Required' },
-        { name: 'status', type: 'Enum', constraint: 'draft | published | closed' },
-        { name: 'eligibility', type: 'Object', constraint: 'minCGPA, branches[], year' },
-        { name: 'createdAt', type: 'Date', constraint: 'Auto' },
-      ],
-      relations: ['User (createdBy FK)', 'Application (jobId FK)'],
-    },
-    {
-      id: 'ent-application',
-      name: 'Application',
-      description: 'Junction entity linking a student to a job posting.',
-      fields: [
-        { name: '_id', type: 'ObjectId', constraint: 'PK' },
-        { name: 'student', type: 'ObjectId', constraint: 'FK → User (Student)' },
-        { name: 'job', type: 'ObjectId', constraint: 'FK → Job' },
-        { name: 'resume', type: 'ObjectId', constraint: 'FK → Resume (optional)' },
-        { name: 'status', type: 'Enum', constraint: 'applied | shortlisted | rejected | selected' },
-        { name: 'appliedAt', type: 'Date', constraint: 'Auto' },
-        { name: 'updatedAt', type: 'Date', constraint: 'Auto' },
-      ],
-      relations: ['User (student FK)', 'Job (job FK)', 'Resume (optional)'],
-    },
-    {
-      id: 'ent-profile',
-      name: 'StudentProfile',
-      description: 'Extended profile for Student users. Linked 1:1 to User.',
-      fields: [
-        { name: '_id', type: 'ObjectId', constraint: 'PK' },
-        { name: 'user', type: 'ObjectId', constraint: 'FK → User, Unique' },
-        { name: 'cgpa', type: 'Number', constraint: 'Required, 0–10' },
-        { name: 'branch', type: 'String', constraint: 'Required' },
-        { name: 'graduationYear', type: 'Number', constraint: 'Required' },
-        { name: 'skills', type: 'String[]', constraint: '' },
-        { name: 'resumeUrl', type: 'String', constraint: 'Cloud storage URL' },
-      ],
-      relations: ['User (1:1)'],
-    },
-  ],
-  sqlCode: `-- Users
-CREATE TABLE users (
-  _id       VARCHAR(24) PRIMARY KEY,
-  name      VARCHAR(100) NOT NULL,
-  email     VARCHAR(255) UNIQUE NOT NULL,
-  password  VARCHAR(255) NOT NULL,
-  role      ENUM('student','recruiter','admin') NOT NULL,
-  is_verified BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Jobs
-CREATE TABLE jobs (
-  _id         VARCHAR(24) PRIMARY KEY,
-  created_by  VARCHAR(24) REFERENCES users(_id),
-  title       VARCHAR(200) NOT NULL,
-  description TEXT,
-  ctc         DECIMAL(5,2),
-  deadline    TIMESTAMP NOT NULL,
-  status      ENUM('draft','published','closed') DEFAULT 'draft',
-  created_at  TIMESTAMP DEFAULT NOW()
-);
-
--- Applications
-CREATE TABLE applications (
-  _id        VARCHAR(24) PRIMARY KEY,
-  student    VARCHAR(24) REFERENCES users(_id),
-  job        VARCHAR(24) REFERENCES jobs(_id),
-  status     ENUM('applied','shortlisted','rejected','selected') DEFAULT 'applied',
-  applied_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE (student, job)
-);`,
+export const DOC_TYPE_MAP = {
+  BRD: 'brd',
+  SRS: 'srs',
+  UserStories: 'user-stories',
+  APISpec: 'api',
+  DBSchema: 'database',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Status map for the sidebar — tracks which docs are "generated"
-// In Phase 3 this comes from the API response.
-// ─────────────────────────────────────────────────────────────────────────────
-// BRD status is resolved dynamically from the real backend.
-// Other document types are pending Phase 3 backend implementation.
-const MOCK_STATUS_MAP = {
-  SRS:         { status: 'not_generated', currentVersion: 0 },
-  UserStories: { status: 'not_generated', currentVersion: 0 },
-  APISpec:     { status: 'not_generated', currentVersion: 0 },
-  DBSchema:    { status: 'not_generated', currentVersion: 0 },
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BRD Schema Normalizer
-// Maps the flat BRD API response into the sections[] format used by ProseDocumentView.
+// Document Output Normalizers / Transformers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const normalizeBRDToSections = (brd) => {
+/**
+ * Maps the flat BRD API response into the sections[] format used by ProseDocumentView.
+ */
+export const normalizeBRDToSections = (brd) => {
   const s = [];
   if (brd.executiveSummary) s.push({ id: 'brd-exec-summary', title: 'Executive Summary', content: brd.executiveSummary });
   if (brd.businessProblem) s.push({ id: 'brd-business-problem', title: 'Business Problem', content: brd.businessProblem });
@@ -551,196 +69,609 @@ const normalizeBRDToSections = (brd) => {
   return s;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public API
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
- * Fetch the status of all blueprint documents for a project.
- * BRD status is resolved from the real backend; others are phase-3 pending.
- * @param {string} projectId
- * @returns {Promise<Object>} Map of docType → { status, currentVersion }
+ * Maps the structured SRS API response into the sections[] format used by ProseDocumentView.
  */
-export const fetchDocumentStatuses = async (projectId) => {
-  let brdStatus = { status: 'not_generated', currentVersion: 0 };
-  try {
-    await api.get(`/api/projects/${projectId}/brd`);
-    brdStatus = { status: 'ready', currentVersion: 1 };
-  } catch (err) {
-    if (err.response?.status !== 404) {
-      console.warn('[WorkspaceService] Unexpected error checking BRD status:', err.message);
-    }
+export const normalizeSRSToSections = (srs) => {
+  const s = [];
+  if (srs.systemOverview) {
+    s.push({ id: 'srs-overview', title: '1. System Overview', content: srs.systemOverview });
   }
-  return { BRD: brdStatus, ...MOCK_STATUS_MAP };
+  if (srs.userRoles?.length) {
+    s.push({
+      id: 'srs-roles',
+      title: '2. User Roles & Permissions',
+      table: {
+        headers: ['Role', 'Description', 'Permissions'],
+        rows: srs.userRoles.map(r => [
+          r.roleName,
+          r.description,
+          Array.isArray(r.permissions) ? r.permissions.join(', ') : (r.permissions || '—')
+        ])
+      }
+    });
+  }
+  if (srs.functionalRequirements?.length) {
+    s.push({
+      id: 'srs-functional',
+      title: '3. Functional Requirements',
+      table: {
+        headers: ['ID', 'Category', 'Title', 'Priority', 'Description'],
+        rows: srs.functionalRequirements.map(f => [
+          f.id || '—',
+          f.category || '—',
+          f.title || '—',
+          f.priority || 'High',
+          f.description || '—'
+        ])
+      }
+    });
+  }
+  if (srs.nonFunctionalRequirements?.length) {
+    s.push({
+      id: 'srs-nonfunctional',
+      title: '4. Non-Functional Requirements',
+      table: {
+        headers: ['Category', 'Requirement', 'Metric / SLA'],
+        rows: srs.nonFunctionalRequirements.map(n => [
+          n.category || '—',
+          n.requirement || '—',
+          n.metric || 'Target SLA'
+        ])
+      }
+    });
+  }
+  if (srs.systemFeatures?.length) {
+    s.push({
+      id: 'srs-features',
+      title: '5. System Features',
+      table: {
+        headers: ['Feature', 'Description', 'Inputs', 'Outputs'],
+        rows: srs.systemFeatures.map(sf => [
+          sf.featureName || '—',
+          sf.description || '—',
+          Array.isArray(sf.inputs) ? sf.inputs.join(', ') : (sf.inputs || '—'),
+          Array.isArray(sf.outputs) ? sf.outputs.join(', ') : (sf.outputs || '—')
+        ])
+      }
+    });
+  }
+  if (srs.externalInterfaces?.length) {
+    s.push({
+      id: 'srs-interfaces',
+      title: '6. External Interfaces',
+      table: {
+        headers: ['Interface Type', 'Protocol / Format', 'Description'],
+        rows: srs.externalInterfaces.map(ei => [
+          ei.interfaceType || '—',
+          ei.protocolOrFormat || 'REST/JSON',
+          ei.description || '—'
+        ])
+      }
+    });
+  }
+  if (srs.securityRequirements?.length) {
+    s.push({ id: 'srs-security', title: '7. Security Requirements', items: srs.securityRequirements });
+  }
+  if (srs.performanceRequirements?.length) {
+    s.push({ id: 'srs-performance', title: '8. Performance Requirements', items: srs.performanceRequirements });
+  }
+  if (srs.systemConstraints?.length) {
+    s.push({ id: 'srs-constraints', title: '9. System Constraints', items: srs.systemConstraints });
+  }
+  if (srs.assumptionsAndDependencies?.length) {
+    s.push({ id: 'srs-assumptions', title: '10. Assumptions & Dependencies', items: srs.assumptionsAndDependencies });
+  }
+  if (srs.acceptanceCriteria?.length) {
+    s.push({ id: 'srs-acceptance', title: '11. Acceptance Criteria', items: srs.acceptanceCriteria });
+  }
+  return s;
 };
 
 /**
- * Fetch a single blueprint document.
- * BRD uses the real backend; other doc types are Phase 3 pending.
- * @param {string} projectId
- * @param {string} docType - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
- * @returns {Promise<Object>} Structured document data (sections-based shape for ProseDocumentView)
+ * Maps the structured User Stories API response into the stories[] format used by UserStoryView.
  */
-export const fetchDocument = async (projectId, docType) => {
-  if (docType === 'BRD') {
-    try {
-      const response = await api.get(`/api/projects/${projectId}/brd`);
-      const brd = response.data?.data;
-      if (!brd) throw new Error('NOT_GENERATED');
+export const normalizeUserStories = (raw, updatedAt) => {
+  const stories = [];
+  (raw.epics || []).forEach(epic => {
+    (epic.stories || []).forEach(s => {
+      stories.push({
+        id: s.storyId || s.id,
+        title: `${epic.epicName} — ${s.goal || s.want || 'Story'}`,
+        role: s.role,
+        want: s.goal || s.want || '',
+        benefit: s.benefit || '',
+        actor: s.role || 'User',
+        priority: s.priority || 'Medium',
+        acceptanceCriteria: s.acceptanceCriteria || [],
+      });
+    });
+  });
+
+  return {
+    type: 'UserStories',
+    title: raw.title || 'User Stories',
+    status: 'ready',
+    currentVersion: 1,
+    updatedAt: updatedAt || new Date().toISOString(),
+    stories,
+  };
+};
+
+/**
+ * Maps the structured REST API Design response into the endpoints[] format used by ApiDocumentView.
+ */
+export const normalizeApiSpec = (raw, updatedAt) => {
+  const endpoints = [];
+  (raw.resourceGroups || []).forEach(group => {
+    (group.endpoints || []).forEach(ep => {
+      const queryParams = {};
+      (ep.parameters || []).filter(p => p.in === 'query').forEach(p => {
+        queryParams[p.name] = `${p.type || 'string'}${p.required ? ' (required)' : ''}${p.description ? `: ${p.description}` : ''}`;
+      });
+
+      endpoints.push({
+        id: ep.endpointId || ep.id,
+        group: group.groupName || 'General',
+        method: ep.method || 'GET',
+        path: ep.path,
+        title: ep.summary || ep.title || '',
+        description: ep.description || ep.summary || '',
+        auth: ep.authentication && ep.authentication !== 'None',
+        queryParams: Object.keys(queryParams).length ? queryParams : null,
+        requestBody: ep.requestBody?.schema || null,
+        response: (ep.responses || []).reduce((acc, r) => {
+          acc[r.statusCode] = r.description + (r.schema ? ` (${r.schema})` : '');
+          return acc;
+        }, {}),
+      });
+    });
+  });
+
+  return {
+    type: 'APISpec',
+    title: raw.title || 'REST API Design',
+    status: 'ready',
+    currentVersion: 1,
+    updatedAt: updatedAt || new Date().toISOString(),
+    baseUrl: raw.baseUrl || '/api/v1',
+    endpoints,
+  };
+};
+
+/**
+ * Maps the structured Database Schema response into the format used by DatabaseView.
+ */
+export const normalizeDBSchema = (raw, updatedAt) => {
+  const entities = (raw.entities || []).map(e => ({
+    id: `ent-${e.name}`,
+    name: e.name,
+    description: e.purpose || e.description || '',
+    fields: (e.fields || []).map(f => ({
+      name: f.name,
+      type: f.type,
+      constraint: [
+        f.isPrimaryKey ? 'PK' : '',
+        f.unique ? 'Unique' : '',
+        f.required ? 'Required' : '',
+        f.defaultValue !== null && f.defaultValue !== undefined ? `Default: ${f.defaultValue}` : ''
+      ].filter(Boolean).join(', ') || '—',
+    })),
+    relations: (e.relationships || []).map(r => `${r.type || '1:N'} → ${r.targetEntity}${r.foreignKey ? ` (${r.foreignKey})` : ''}`),
+  }));
+
+  return {
+    type: 'DBSchema',
+    title: raw.title || 'Database Schema',
+    status: 'ready',
+    currentVersion: 1,
+    updatedAt: updatedAt || new Date().toISOString(),
+    entities,
+    sqlCode: raw.mermaidDiagram || '',
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API Methods
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Reconstruct a viewable document object from any content shape (raw AI or edited sections/arrays).
+ *
+ * @param {string} docType   - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @param {*}      content   - Raw JSON, parsed array, or structured document content
+ * @param {object} docMeta   - Document metadata ({ title, status, currentVersion, updatedAt, projectId })
+ * @returns {object}         - Reconstructed document ready for DocRenderer
+ */
+export const normalizeDocumentContent = (docType, content, docMeta = {}) => {
+  if (!content) return null;
+
+  const isArray = Array.isArray(content);
+  const updatedAt = docMeta.updatedAt || new Date().toISOString();
+  const currentVersion = docMeta.currentVersion || 1;
+  const status = docMeta.status || 'ready';
+  const projectId = docMeta.projectId;
+
+  switch (docType) {
+    case 'BRD': {
+      let sections = [];
+      if (isArray) {
+        sections = content;
+      } else if (content.sections && Array.isArray(content.sections)) {
+        sections = content.sections;
+      } else if (content.executiveSummary || content.businessProblem || content.businessObjectives) {
+        sections = normalizeBRDToSections(content);
+      }
       return {
         type: 'BRD',
-        title: brd.title || 'Business Requirements Document',
-        status: 'ready',
-        currentVersion: 1,
-        updatedAt: response.data.updatedAt,
-        sections: normalizeBRDToSections(brd),
+        title: docMeta.title || content.title || 'Business Requirements Document',
+        status,
+        currentVersion,
+        updatedAt,
+        sections,
         projectId,
       };
-    } catch (err) {
-      if (err.message === 'NOT_GENERATED' || err.response?.status === 404) {
-        throw new Error('NOT_GENERATED');
-      }
-      throw err;
     }
+
+    case 'SRS': {
+      let sections = [];
+      if (isArray) {
+        sections = content;
+      } else if (content.sections && Array.isArray(content.sections)) {
+        sections = content.sections;
+      } else if (content.systemOverview || content.functionalRequirements || content.userRoles) {
+        sections = normalizeSRSToSections(content);
+      }
+      return {
+        type: 'SRS',
+        title: docMeta.title || content.title || 'Software Requirements Specification',
+        status,
+        currentVersion,
+        updatedAt,
+        sections,
+        projectId,
+      };
+    }
+
+    case 'UserStories': {
+      if (content.epics && Array.isArray(content.epics)) {
+        return normalizeUserStories(content, updatedAt);
+      }
+      const stories = isArray ? content : (content.stories || []);
+      return {
+        type: 'UserStories',
+        title: docMeta.title || content.title || 'User Stories',
+        status,
+        currentVersion,
+        updatedAt,
+        stories,
+        projectId,
+      };
+    }
+
+    case 'APISpec': {
+      if (content.resourceGroups && Array.isArray(content.resourceGroups)) {
+        return normalizeApiSpec(content, updatedAt);
+      }
+      const endpoints = isArray ? content : (content.endpoints || []);
+      return {
+        type: 'APISpec',
+        title: docMeta.title || content.title || 'REST API Design',
+        status,
+        currentVersion,
+        updatedAt,
+        baseUrl: content.baseUrl || '/api/v1',
+        endpoints,
+        projectId,
+      };
+    }
+
+    case 'DBSchema': {
+      if (content.entities && Array.isArray(content.entities) && content.entities.some(e => e.purpose || e.relationships)) {
+        return normalizeDBSchema(content, updatedAt);
+      }
+      const entities = isArray ? content : (content.entities || []);
+      return {
+        type: 'DBSchema',
+        title: docMeta.title || content.title || 'Database Schema',
+        status,
+        currentVersion,
+        updatedAt,
+        entities,
+        sqlCode: content.sqlCode || content.mermaidDiagram || '',
+        projectId,
+      };
+    }
+
+    default:
+      return {
+        type: docType,
+        title: docMeta.title || docType,
+        status,
+        currentVersion,
+        updatedAt,
+        content,
+        projectId,
+      };
+  }
+};
+
+/**
+ * Fetch the status of all 5 blueprint documents for a project.
+ * Checks the Document collection first, falling back to generations.
+ *
+ * @param {string} projectId
+ * @returns {Promise<Object>} Map of docType → { status: 'ready' | 'not_generated', currentVersion: number }
+ */
+export const fetchDocumentStatuses = async (projectId) => {
+  const statuses = {};
+  const docTypes = Object.entries(DOC_TYPE_MAP);
+
+  // 1. First try to load all saved Documents for the project
+  try {
+    const docRes = await api.get(`/api/projects/${projectId}/documents`);
+    const docList = docRes.data?.data || [];
+    docList.forEach(doc => {
+      // Map Document.type enum back to frontend ID
+      const frontendId = Object.keys(DOC_TYPE_MAP).find(k => k.toUpperCase() === (doc.type || '').toUpperCase()) || doc.type;
+      if (frontendId) {
+        statuses[frontendId] = {
+          status: doc.status || 'ready',
+          currentVersion: doc.currentVersion || 1,
+        };
+      }
+    });
+  } catch {
+    // Ignore error and proceed to generation check
   }
 
-  // Other document types not yet backed by a real endpoint — show empty state
-  throw new Error('NOT_GENERATED');
+  // 2. For any docType not found in Document collection, check Generation
+  const missingDocTypes = docTypes.filter(([frontendId]) => !statuses[frontendId]);
+
+  if (missingDocTypes.length > 0) {
+    const results = await Promise.allSettled(
+      missingDocTypes.map(async ([frontendId, backendType]) => {
+        try {
+          const response = await api.get(`/api/projects/${projectId}/generations/${backendType}`);
+          const data = response.data?.data;
+          if (data) {
+            return { frontendId, status: 'ready', currentVersion: 1 };
+          }
+          return { frontendId, status: 'not_generated', currentVersion: 0 };
+        } catch {
+          return { frontendId, status: 'not_generated', currentVersion: 0 };
+        }
+      })
+    );
+
+    results.forEach(res => {
+      if (res.status === 'fulfilled' && res.value) {
+        statuses[res.value.frontendId] = {
+          status: res.value.status,
+          currentVersion: res.value.currentVersion,
+        };
+      }
+    });
+  }
+
+  return statuses;
 };
 
 /**
- * Save document content (edit mode).
- * Phase 3: PUT /api/projects/:projectId/documents/:type
+ * Fetch a single blueprint document and normalize it for the specialized viewer.
+ * Checks Document collection first (persisted edits / versions), then falls back to Generation.
+ *
  * @param {string} projectId
- * @param {string} docType
- * @param {Object} content - Updated document content
- * @returns {Promise<Object>} Saved document
+ * @param {string} docType - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @returns {Promise<Object>} Structured document data
  */
-export const saveDocument = async (projectId, docType, content) => {
-  // [DEMO] Mock — Phase 3: replace with api.put(...)
-  await new Promise(r => setTimeout(r, 800));
-  return { ...content, updatedAt: new Date().toISOString() };
+export const fetchDocument = async (projectId, docType) => {
+  const backendType = DOC_TYPE_MAP[docType];
+  if (!backendType) {
+    throw new Error(`Unsupported document type: ${docType}`);
+  }
+
+  const docTypeEnum = {
+    BRD:        'BRD',
+    SRS:        'SRS',
+    UserStories:'UserStories',
+    APISpec:    'APISpec',
+    DBSchema:   'DBSchema',
+  }[docType] || docType;
+
+  // 1. Try to fetch from Document API first (contains latest manual edits & version)
+  try {
+    const docResponse = await api.get(`/api/projects/${projectId}/documents/${docTypeEnum}`);
+    const docData = docResponse.data?.data;
+    if (docData && docData.content) {
+      const normalized = normalizeDocumentContent(docType, docData.content, {
+        title: docData.title,
+        status: docData.status,
+        currentVersion: docData.currentVersion,
+        updatedAt: docData.updatedAt,
+        projectId,
+      });
+      if (normalized) return normalized;
+    }
+  } catch (err) {
+    // If not a 404, log but proceed to generation fallback
+  }
+
+  // 2. Fallback to Generation API
+  try {
+    const genResponse = await api.get(`/api/projects/${projectId}/generations/${backendType}`);
+    const rawData = genResponse.data?.data;
+    if (!rawData) throw new Error('NOT_GENERATED');
+
+    const updatedAt = genResponse.data.updatedAt;
+
+    return normalizeDocumentContent(docType, rawData, {
+      title: rawData.title,
+      status: 'ready',
+      currentVersion: 1,
+      updatedAt,
+      projectId,
+    });
+  } catch (err) {
+    const is404 = err?.status === 404 || err?.response?.status === 404;
+    const isNotGenMsg = typeof err?.message === 'string' && (
+      err.message === 'NOT_GENERATED' ||
+      err.message.includes('No completed') ||
+      err.message.includes('not found')
+    );
+
+    if (is404 || isNotGenMsg) {
+      const notGenErr = new Error('NOT_GENERATED');
+      notGenErr.isNotGenerated = true;
+      throw notGenErr;
+    }
+    throw err;
+  }
 };
 
 /**
- * Trigger BRD generation for a project.
- * Calls POST /api/projects/:projectId/brd/generate
+ * Trigger generation for any of the 5 supported document types.
+ *
  * @param {string} projectId
- * @returns {Promise<Object>} { success, generationId, data }
+ * @param {string} docType - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @returns {Promise<Object>} { success, generationId, data, generationType }
  */
-export const generateBRD = async (projectId) => {
-  const response = await api.post(`/api/projects/${projectId}/brd/generate`);
+export const generateDocument = async (projectId, docType) => {
+  const backendType = DOC_TYPE_MAP[docType];
+  if (!backendType) {
+    throw new Error(`Unsupported document type: ${docType}`);
+  }
+
+  const response = await api.post(`/api/projects/${projectId}/generations/${backendType}`);
   return response.data;
 };
 
 /**
- * Fetch version history for a document.
- * Phase 3: GET /api/documents/:id/versions
- * @param {string} documentId
- * @returns {Promise<Array>} Array of version records
+ * Backward compatibility alias for BRD generation.
  */
-export const fetchVersionHistory = async (documentId) => {
-  // [DEMO] Mock — Phase 3: replace with api.get(`/api/documents/${documentId}/versions`)
-  await new Promise(r => setTimeout(r, 300));
+export const generateBRD = async (projectId) => {
+  return generateDocument(projectId, 'BRD');
+};
+
+/**
+ * Save edited document content to the backend and create a new version.
+ *
+ * @param {string} projectId
+ * @param {string} docType - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @param {object} content - The updated structured content object
+ * @returns {Promise<Object>} Updated document metadata
+ */
+export const saveDocument = async (projectId, docType, content) => {
+  const docTypeEnum = {
+    BRD:        'BRD',
+    SRS:        'SRS',
+    UserStories:'UserStories',
+    APISpec:    'APISpec',
+    DBSchema:   'DBSchema',
+  }[docType] || docType;
+
+  const response = await api.put(
+    `/api/projects/${projectId}/documents/${docTypeEnum}`,
+    { content }
+  );
+  return response.data;
+};
+
+/**
+ * Restore a document to a previous version snapshot.
+ *
+ * @param {string} projectId
+ * @param {string} docType - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @param {number} versionNumber - Version number to restore
+ * @returns {Promise<Object>} Restored document data
+ */
+export const restoreDocumentVersion = async (projectId, docType, versionNumber) => {
+  const docTypeEnum = {
+    BRD:        'BRD',
+    SRS:        'SRS',
+    UserStories:'UserStories',
+    APISpec:    'APISpec',
+    DBSchema:   'DBSchema',
+  }[docType] || docType;
+
+  const response = await api.put(
+    `/api/projects/${projectId}/documents/${docTypeEnum}/restore/${versionNumber}`
+  );
+  return response.data;
+};
+
+/**
+ * Fetch real version history for a document from the backend.
+ *
+ * @param {string} docId - Frontend doc ID like 'BRD', 'SRS', etc.
+ * @param {string} projectId - MongoDB project ID (must be passed from context)
+ * @returns {Promise<Array>} Ordered version history (newest first)
+ */
+export const fetchVersionHistory = async (docId, projectId) => {
+  if (!projectId) return [];
+
+  // Map frontend docId → Document.type enum
+  const docTypeEnum = {
+    BRD:        'BRD',
+    SRS:        'SRS',
+    UserStories:'UserStories',
+    APISpec:    'APISpec',
+    DBSchema:   'DBSchema',
+  }[docId] || docId;
+
+  try {
+    const response = await api.get(
+      `/api/projects/${projectId}/documents/${docTypeEnum}/versions`
+    );
+    return response.data?.data || [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Reconstruct a viewable document object from a stored version's content blob.
+ *
+ * @param {string} docType   - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @param {*}      content   - Parsed content from DocumentVersion.content
+ * @param {object} baseDoc   - The current document (for title/type metadata)
+ * @returns {object}         - Reconstructed document ready for DocRenderer
+ */
+export const normalizeVersionContent = (docType, content, baseDoc) => {
+  if (!content) return baseDoc;
+
+  const reconstructed = normalizeDocumentContent(docType, content, {
+    title: baseDoc?.title,
+    status: baseDoc?.status || 'ready',
+    currentVersion: baseDoc?.currentVersion || 1,
+    updatedAt: baseDoc?.updatedAt,
+    projectId: baseDoc?.projectId,
+  });
+
+  return reconstructed || baseDoc;
+};
+
+/**
+ * Fetch chat message history for a document (chat panel placeholder).
+ */
+export const fetchDocumentChat = async (documentId) => {
   return [
-    { versionNumber: 2, changes: 'Refined business objectives and scope section.', createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-    { versionNumber: 1, changes: 'Initial AI generation.', createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString() },
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: 'I can help you review, refine, or add details to this document. What would you like to adjust?',
+    },
   ];
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Document Refinement (Mock Chat API)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_CHAT_HISTORY = {
-  BRD: [],
-  SRS: [],
-  UserStories: [],
-  APISpec: [],
-  DBSchema: [],
-};
-
 /**
- * Fetch the chat history for a specific document.
- * Phase 3: GET /api/projects/:projectId/documents/:docType/chat
+ * Refine a document with AI prompt instruction (chat panel placeholder).
  */
-export const fetchDocumentChat = async (projectId, docType) => {
-  await new Promise(r => setTimeout(r, 400));
-  return MOCK_CHAT_HISTORY[docType] || [];
-};
-
-/**
- * Send a prompt to refine the document.
- * Phase 3: POST /api/projects/:projectId/documents/:docType/refine
- */
-export const refineDocument = async (projectId, docType, prompt) => {
-  // 1. Add user message to mock history
-  MOCK_CHAT_HISTORY[docType].push({
-    id: Date.now().toString(),
-    role: 'user',
-    content: prompt,
-    createdAt: new Date().toISOString(),
-  });
-
-  // 2. Simulate AI processing time (1.5s to 3s)
-  await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
-
-  // 3. Mutate the mock document slightly to simulate a change
-  const doc = MOCK_DOCS[docType];
-  if (doc) {
-    doc.currentVersion += 1;
-    doc.updatedAt = new Date().toISOString();
-    
-    // Add a generic section or item based on type
-    if (docType === 'BRD' || docType === 'SRS') {
-      doc.sections.push({
-        id: `section-refined-${Date.now()}`,
-        title: 'Refined AI Addition',
-        content: `This section was added as a result of the refinement request: "${prompt}".`,
-      });
-    } else if (docType === 'UserStories') {
-      doc.stories.push({
-        id: `US-${doc.stories.length + 1}`.padStart(6, '0'),
-        title: 'Refined User Story',
-        role: 'user',
-        want: 'see the refined output',
-        benefit: 'I know the chat works',
-        actor: 'User',
-        priority: 'Medium',
-        acceptanceCriteria: ['Output is updated based on chat.'],
-      });
-    } else if (docType === 'APISpec') {
-      doc.endpoints.push({
-        id: `ep-refined-${Date.now()}`,
-        group: 'Refined Endpoints',
-        method: 'GET',
-        path: '/api/v1/refined',
-        title: 'Refined Endpoint',
-        description: `Generated from request: ${prompt}`,
-        auth: true,
-      });
-    } else if (docType === 'DBSchema') {
-      doc.entities.push({
-        id: `ent-refined-${Date.now()}`,
-        name: 'RefinedEntity',
-        description: `Added based on chat prompt: ${prompt}`,
-        fields: [
-          { name: '_id', type: 'ObjectId', constraint: 'PK' },
-          { name: 'data', type: 'String', constraint: 'Added via chat' }
-        ],
-        relations: []
-      });
-    }
-  }
-
-  // 4. Add AI response to history
-  const aiMessage = {
-    id: (Date.now() + 1).toString(),
-    role: 'ai',
-    content: `I've updated the ${docType} based on your request. You should see the new content reflected in the document viewer.`,
-    createdAt: new Date().toISOString(),
+export const refineDocument = async (projectId, docType, instruction, currentDoc) => {
+  await new Promise(r => setTimeout(r, 1200));
+  return {
+    ...currentDoc,
+    updatedAt: new Date().toISOString(),
   };
-  MOCK_CHAT_HISTORY[docType].push(aiMessage);
-
-  return { message: aiMessage, updatedDocument: doc };
 };
+

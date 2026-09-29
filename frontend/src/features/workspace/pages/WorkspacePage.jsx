@@ -175,6 +175,8 @@ const WorkspacePage = () => {
     };
   }, [isDraggingSidebar, isDraggingRightPanel, handleMouseMove, handleMouseUp]);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   // ── Project name ──
   const projectName = projectLoading ? '…' : currentProject?.title ?? 'Project';
 
@@ -246,37 +248,18 @@ const WorkspacePage = () => {
               backgroundSize: '100% 100%, 48px 48px',
             }}
           >
-            {/* [DEMO] Notice bar */}
-            <div
-              className="flex items-center justify-center gap-2 px-4 py-2 text-xs"
-              style={{
-                background: 'rgba(59,130,246,0.06)',
-                borderBottom: '1px solid rgba(59,130,246,0.12)',
-                color: '#93C5FD',
-                flexShrink: 0,
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-                <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M5 4v2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                <circle cx="5" cy="7.5" r="0.5" fill="currentColor" />
-              </svg>
-              <span>
-                <strong>Phase 3 Preview:</strong> Documents below are structured demo data.
-                Blueprint Engine integration will populate actual AI-generated content.
-              </span>
-            </div>
-
             <DocumentViewer
               projectId={projectId}
               activeDocId={activeDocId}
               docStatuses={docStatuses}
               onDocumentLoaded={setActiveDoc}
               onSaveStateChange={setSaveState}
+              onDocumentGenerated={loadStatuses}
               externalDocUpdate={activeDoc}
               previewVersion={previewVersion}
               onClearPreview={() => setPreviewVersion(null)}
               triggerSave={triggerSave}
+              refreshKey={refreshKey}
             />
           </main>
 
@@ -312,11 +295,18 @@ const WorkspacePage = () => {
               width={rightPanelWidth}
               activeDocId={activeDocId}
               activeDoc={activeDoc}
+              projectId={projectId}
               onViewVersion={(v) => setPreviewVersion(v)}
+              onRestoreSuccess={() => {
+                setPreviewVersion(null);
+                setRefreshKey(k => k + 1);
+                loadStatuses();
+              }}
             />
           )}
         </div>
       )}
+
 
       {/* ── Export Dialog ── */}
       <ExportDialog

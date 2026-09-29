@@ -12,6 +12,7 @@ import Project from '../../models/Project.js';
 import Generation from '../../models/Generation.js';
 import { env } from '../../config/env.js';
 import * as blueprintEngine from '../../engine/core/blueprintEngine.js';
+import * as documentService from '../document/documentService.js';
 
 // Authoritative supported document generation types (locked to project synopsis scope)
 export const SUPPORTED_GENERATION_TYPES = new Set([
@@ -104,6 +105,25 @@ export const generateDocument = async (projectId, ownerId, generationType) => {
 
     console.log(`[GenerationService] COMPLETED — generationId=${generation._id}, type=${generationType}, provider=${actualProvider}, model=${actualModel}, durationMs=${generation.durationMs}`);
 
+    // Step 8: Bridge Generation → Document → DocumentVersion
+    try {
+      const { document: doc, versionNumber } = await documentService.upsertDocumentFromGeneration({
+        projectId,
+        generationType,
+        generationId: generation._id,
+        outputData,
+        userId: ownerId,
+      });
+      // Link generation record back to the document for traceability
+      generation.document = doc._id;
+      await generation.save();
+      console.log(`[GenerationService] DOCUMENT LINKED — documentId=${doc._id}, version=${versionNumber}`);
+    } catch (docErr) {
+      // Document persistence failure must NOT fail the generation response —
+      // the AI output is already saved in the Generation record.
+      console.error(`[GenerationService] Document upsert failed (non-fatal): ${docErr.message}`);
+    }
+
     return {
       status: 'success',
       data: outputData,
@@ -146,9 +166,13 @@ export const getLatestGeneration = async (projectId, ownerId, generationType) =>
     return { status: 'unauthorized' };
   }
 
+  const queryType = (generationType === 'api' || generationType === 'api-design')
+    ? { $in: ['api', 'api-design'] }
+    : generationType;
+
   const latest = await Generation.findOne({
     project: projectId,
-    generationType,
+    generationType: queryType,
     status: 'completed',
   }).sort({ createdAt: -1 });
 

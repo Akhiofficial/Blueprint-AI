@@ -1,30 +1,53 @@
-import { useState, useEffect } from 'react';
-import { fetchVersionHistory } from '../services/workspaceService';
+import { useState, useEffect, useCallback } from 'react';
+import { fetchVersionHistory, restoreDocumentVersion } from '../services/workspaceService';
 
-const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion, width = 320 }) => {
+const VersionHistoryPanel = ({
+  activeDocId,
+  activeDoc,
+  onViewVersion,
+  onRestoreSuccess,
+  width = 320,
+  projectId
+}) => {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [restoringVersion, setRestoringVersion] = useState(null);
+
+  const loadHistory = useCallback(async () => {
+    if (!activeDocId || !projectId) {
+      setVersions([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const history = await fetchVersionHistory(activeDocId, projectId);
+      setVersions(history);
+    } catch {
+      setVersions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeDocId, projectId]);
 
   useEffect(() => {
-    if (!activeDocId) return;
+    loadHistory();
+  }, [loadHistory]);
 
-    let isMounted = true;
-    setLoading(true);
-    setVersions([]);
-
-    fetchVersionHistory(activeDocId)
-      .then(history => {
-        if (isMounted) {
-          setVersions(history);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => { isMounted = false; };
-  }, [activeDocId]);
+  const handleRestore = async (versionNumber) => {
+    if (!projectId || !activeDocId || restoringVersion !== null) return;
+    setRestoringVersion(versionNumber);
+    try {
+      await restoreDocumentVersion(projectId, activeDocId, versionNumber);
+      await loadHistory();
+      onRestoreSuccess?.(versionNumber);
+    } catch (err) {
+      console.error('Failed to restore version:', err);
+    } finally {
+      setRestoringVersion(null);
+    }
+  };
 
   return (
     <aside
@@ -67,6 +90,7 @@ const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion, width = 32
         ) : (
           versions.map((version, index) => {
             const isCurrent = index === 0; // Assuming the first item is the most recent
+            const isThisRestoring = restoringVersion === version.versionNumber;
             
             return (
               <div 
@@ -134,19 +158,26 @@ const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion, width = 32
                   </button>
                   {!isCurrent && (
                     <button
-                      onClick={() => {
-                        window.alert('Restore functionality pending backend support in Phase 3.');
-                      }}
-                      className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                      onClick={() => handleRestore(version.versionNumber)}
+                      disabled={isThisRestoring}
+                      className="flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
                       style={{
                         background: 'rgba(59,130,246,0.15)',
                         color: '#60A5FA',
                         border: '1px solid rgba(59,130,246,0.2)',
+                        opacity: isThisRestoring ? 0.6 : 1,
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.25)'; }}
+                      onMouseEnter={e => { if (!isThisRestoring) e.currentTarget.style.background = 'rgba(59,130,246,0.25)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.15)'; }}
                     >
-                      Restore
+                      {isThisRestoring ? (
+                        <>
+                          <span className="w-3 h-3 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin" />
+                          Restoring…
+                        </>
+                      ) : (
+                        'Restore'
+                      )}
                     </button>
                   )}
                 </div>
@@ -160,3 +191,4 @@ const VersionHistoryPanel = ({ activeDocId, activeDoc, onViewVersion, width = 32
 };
 
 export default VersionHistoryPanel;
+

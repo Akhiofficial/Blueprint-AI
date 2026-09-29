@@ -10,16 +10,13 @@ const documentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
+      // Locked to project synopsis scope — DO NOT add new types
       enum: [
         'BRD',
         'SRS',
         'UserStories',
-        'UseCases',
         'DBSchema',
         'APISpec',
-        'Architecture',
-        'TestCases',
-        'Roadmap',
       ],
       required: [true, 'Document type is required'],
     },
