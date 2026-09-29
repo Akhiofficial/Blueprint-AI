@@ -9,6 +9,7 @@ import { buildContext } from '../context/contextBuilder.js';
 import { retrieveRelevantContext } from '../rag/ragService.js';
 import { analyzeRequirements } from '../analyzers/requirementAnalyzer.js';
 import { generateBRDDocument } from '../generators/brdGenerator.js';
+import { generateSRSDocument } from '../generators/srsGenerator.js';
 
 /**
  * Executes the requested generation workflow.
@@ -53,7 +54,21 @@ export const execute = async ({ projectId, generationType, modelName }) => {
       return { data: result.data, model: result.model, provider: result.provider };
     }
 
-    case 'srs':
+    case 'srs': {
+      const brdOutput = context.documents['brd'];
+      if (!brdOutput) {
+        throw new Error("Missing prerequisite: brd is required to generate SRS.");
+      }
+
+      let ragContext = '';
+      if (context.project?.description) {
+        ragContext = await retrieveRelevantContext(projectId, context.project.description);
+      }
+
+      const result = await generateSRSDocument(brdOutput, context.project, ragContext, modelName);
+      if (!result.success) throw new Error(result.error);
+      return { data: result.data, model: result.model, provider: result.provider };
+    }
     case 'user-stories':
     case 'api':
     case 'database':
