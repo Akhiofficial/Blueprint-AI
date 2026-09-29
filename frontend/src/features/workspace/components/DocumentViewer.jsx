@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchDocument, saveDocument } from '../services/workspaceService';
+import { fetchDocument, saveDocument, generateBRD } from '../services/workspaceService';
 import DocumentActions from './DocumentActions';
 import ProseDocumentView from './ProseDocumentView';
 import UserStoryView from './UserStoryView';
@@ -72,47 +72,66 @@ const DocError = ({ onRetry }) => (
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-const DocEmpty = ({ docId, docLabel }) => (
-  <div className="flex flex-col items-center justify-center py-20 px-8 text-center ws-enter-up">
-    <div
-      className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)' }}
-    >
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-        <rect x="3" y="3" width="14" height="14" rx="3" stroke="rgba(255,255,255,0.25)" strokeWidth="1.3" strokeDasharray="3 2" />
-        <path d="M10 8v4M8 10h4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
+const DocEmpty = ({ docId, docLabel, onGenerate, isGenerating }) => {
+  const canGenerate = !!onGenerate;
+
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-8 text-center ws-enter-up">
+      <div
+        className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)' }}
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+          <rect x="3" y="3" width="14" height="14" rx="3" stroke="rgba(255,255,255,0.25)" strokeWidth="1.3" strokeDasharray="3 2" />
+          <path d="M10 8v4M8 10h4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      </div>
+      <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
+        {docLabel} not generated yet
+      </h3>
+      <p className="text-xs mb-5 max-w-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.65 }}>
+        {canGenerate
+          ? 'Generate your BRD from the completed requirement analysis.'
+          : 'This document hasn\'t been generated yet. Generate it from your analyzed requirements.'}
+      </p>
+      <button
+        id={`generate-${docId}-btn`}
+        onClick={canGenerate ? onGenerate : undefined}
+        disabled={!canGenerate || isGenerating}
+        className="text-xs px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5"
+        style={{
+          background: canGenerate ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.06)',
+          border: canGenerate ? '1px solid rgba(59,130,246,0.35)' : '1px solid rgba(59,130,246,0.12)',
+          color: canGenerate ? '#60A5FA' : 'rgba(96,165,250,0.45)',
+          cursor: canGenerate ? 'pointer' : 'not-allowed',
+          opacity: isGenerating ? 0.7 : 1,
+        }}
+        onMouseEnter={e => { if (canGenerate && !isGenerating) e.currentTarget.style.background = 'rgba(59,130,246,0.22)'; }}
+        onMouseLeave={e => { if (canGenerate) e.currentTarget.style.background = 'rgba(59,130,246,0.15)'; }}
+      >
+        {isGenerating ? (
+          <>
+            <span className="w-3 h-3 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin" />
+            Generating…
+          </>
+        ) : (
+          <>
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
+              <path d="M5.5 1v4M3 4l2.5 2.5L8 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M1 9h9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            Generate {docLabel}
+          </>
+        )}
+      </button>
+      {!canGenerate && (
+        <p className="mt-2 text-xs" style={{ color: 'rgba(255,255,255,0.18)' }}>
+          Individual generation available in Phase 3
+        </p>
+      )}
     </div>
-    <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-      {docLabel} not generated yet
-    </h3>
-    <p className="text-xs mb-5 max-w-xs" style={{ color: 'rgba(255,255,255,0.3)', lineHeight: 1.65 }}>
-      This document hasn't been generated yet. Generate it from your analyzed requirements.
-    </p>
-    <button
-      id={`generate-${docId}-btn`}
-      className="text-xs px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5"
-      style={{
-        background: 'rgba(59,130,246,0.1)',
-        border: '1px solid rgba(59,130,246,0.2)',
-        color: '#60A5FA',
-        cursor: 'not-allowed',
-        opacity: 0.7,
-      }}
-      title="Individual generation available in Phase 3"
-      disabled
-    >
-      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
-        <path d="M5.5 1v4M3 4l2.5 2.5L8 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M1 9h9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      </svg>
-      Generate {docLabel}
-    </button>
-    <p className="mt-2 text-xs" style={{ color: 'rgba(255,255,255,0.18)' }}>
-      Individual generation available in Phase 3
-    </p>
-  </div>
-);
+  );
+};
 
 // ─── Route document type to correct renderer ──────────────────────────────────
 
@@ -169,6 +188,8 @@ const DocumentViewer = ({
   const [isSaving, setIsSaving]         = useState(false);
   const [regenSectionId, setRegenSectionId] = useState(null);
   const [editChanges, setEditChanges]   = useState({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError]         = useState(null);
 
   // ── Load document when active doc changes ──
   const loadDocument = useCallback(async () => {
@@ -256,11 +277,29 @@ const DocumentViewer = ({
     setRegenSectionId(null);
   };
 
+  // ── BRD generation ──
+  const handleGenerate = useCallback(async () => {
+    if (!projectId || isGenerating) return;
+    setIsGenerating(true);
+    setGenError(null);
+    try {
+      await generateBRD(projectId);
+      // On success, reload the document so DocRenderer renders the real BRD
+      await loadDocument();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'BRD generation failed.';
+      setGenError(msg);
+      setLoadState('empty'); // stay on empty state so user can retry
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [projectId, isGenerating, loadDocument]);
+
   // ── Document status ──
   const docStatus = docStatuses?.[activeDocId]?.status || 'not_generated';
 
-  // ── Generating state ──
-  if (docStatus === 'generating') {
+  // ── Generating state (from backend status or local generation in progress) ──
+  if (docStatus === 'generating' || isGenerating) {
     return <GenerationStatus currentStageIndex={2} />;
   }
 
@@ -329,7 +368,28 @@ const DocumentViewer = ({
       <div className={`flex-1 overflow-y-auto ws-panel ${previewVersion ? 'opacity-80' : ''}`}>
         {loadState === 'loading' && <DocumentSkeleton />}
         {loadState === 'error'   && <DocError onRetry={loadDocument} />}
-        {loadState === 'empty'   && <DocEmpty docId={activeDocId} docLabel={activeDocId} />}
+        {loadState === 'empty'   && (
+          <>
+            <DocEmpty
+              docId={activeDocId}
+              docLabel={activeDocId}
+              onGenerate={activeDocId === 'BRD' ? handleGenerate : undefined}
+              isGenerating={isGenerating}
+            />
+            {genError && (
+              <div
+                className="mx-6 mb-4 px-4 py-3 rounded-lg text-xs"
+                style={{
+                  background: 'rgba(239,68,68,0.08)',
+                  border: '1px solid rgba(239,68,68,0.18)',
+                  color: '#F87171',
+                }}
+              >
+                {genError}
+              </div>
+            )}
+          </>
+        )}
 
         {loadState === 'ready' && document && (
           <DocRenderer

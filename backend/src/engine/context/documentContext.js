@@ -3,6 +3,38 @@
  *
  * Builds the document-level context from previously generated documents.
  * Enables cross-document consistency (e.g. SRS references BRD decisions).
- *
- * TODO: Implement in Phase 3 — Blueprint Engine context layer.
  */
+
+import Generation from '../../models/Generation.js';
+
+// Define expected prerequisites for each supported generation type.
+// Keys MUST match the generationType strings used in blueprintEngine.js.
+const PREREQUISITES = {
+  'brd': ['requirement-analysis'],
+  'srs': ['brd'],
+  'user-stories': ['srs'],
+  'api': ['srs'],
+  'api-design': ['srs'],
+  'database': ['srs'],
+};
+
+export const buildDocumentContext = async (projectId, generationType) => {
+  const prereqs = PREREQUISITES[generationType] || [];
+  const context = {};
+
+  for (const prereq of prereqs) {
+    const latestDoc = await Generation.findOne({
+      project: projectId,
+      generationType: prereq,
+      status: 'completed'
+    }).sort({ createdAt: -1 }).lean();
+
+    if (latestDoc && latestDoc.output) {
+      context[prereq] = latestDoc.output;
+    } else {
+      context[prereq] = null;
+    }
+  }
+
+  return context;
+};

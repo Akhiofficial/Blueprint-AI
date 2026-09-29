@@ -17,6 +17,10 @@ const generationSchema = new mongoose.Schema(
       required: [true, 'Generation type is required'],
       trim: true,
     },
+    provider: {
+      type: String,
+      default: '',
+    },
     model: {
       type: String,
       default: '',
@@ -33,6 +37,14 @@ const generationSchema = new mongoose.Schema(
     durationMs: {
       type: Number,
       default: 0,
+    },
+    output: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    error: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }

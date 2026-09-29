@@ -8,6 +8,8 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import requirementRoutes from './routes/requirementRoutes.js';
+import brdRoutes from './routes/brdRoutes.js';
+import generationRoutes from './routes/generationRoutes.js';
 
 const app = express();
 
@@ -36,6 +38,9 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:projectId/requirements', requirementRoutes);
+app.use('/api/projects/:projectId/brd', brdRoutes);
+app.use('/api/projects/:projectId/generations', generationRoutes);
+
 
 // ── Health check
 app.get('/api/health', (req, res) => {

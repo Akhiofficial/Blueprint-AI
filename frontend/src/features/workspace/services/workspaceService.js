@@ -510,49 +510,102 @@ CREATE TABLE applications (
 // Status map for the sidebar — tracks which docs are "generated"
 // In Phase 3 this comes from the API response.
 // ─────────────────────────────────────────────────────────────────────────────
+// BRD status is resolved dynamically from the real backend.
+// Other document types are pending Phase 3 backend implementation.
 const MOCK_STATUS_MAP = {
-  BRD:         { status: 'ready',         currentVersion: 2 },
-  SRS:         { status: 'ready',         currentVersion: 1 },
-  UserStories: { status: 'ready',         currentVersion: 1 },
-  APISpec:     { status: 'ready',         currentVersion: 1 },
-  DBSchema:    { status: 'ready',         currentVersion: 1 },
+  SRS:         { status: 'not_generated', currentVersion: 0 },
+  UserStories: { status: 'not_generated', currentVersion: 0 },
+  APISpec:     { status: 'not_generated', currentVersion: 0 },
+  DBSchema:    { status: 'not_generated', currentVersion: 0 },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BRD Schema Normalizer
+// Maps the flat BRD API response into the sections[] format used by ProseDocumentView.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const normalizeBRDToSections = (brd) => {
+  const s = [];
+  if (brd.executiveSummary) s.push({ id: 'brd-exec-summary', title: 'Executive Summary', content: brd.executiveSummary });
+  if (brd.businessProblem) s.push({ id: 'brd-business-problem', title: 'Business Problem', content: brd.businessProblem });
+  if (brd.businessObjectives?.length) s.push({ id: 'brd-objectives', title: 'Business Objectives', items: brd.businessObjectives });
+  if (brd.scope?.inScope?.length || brd.scope?.outOfScope?.length) {
+    const items = [
+      ...(brd.scope.inScope ?? []).map(i => `✓  ${i}`),
+      ...(brd.scope.outOfScope ?? []).map(i => `✗  ${i}`),
+    ];
+    if (items.length) s.push({ id: 'brd-scope', title: 'Scope', items });
+  }
+  if (brd.stakeholders?.length) s.push({ id: 'brd-stakeholders', title: 'Stakeholders', table: { headers: ['Role', 'Description'], rows: brd.stakeholders.map(x => [x.role, x.description]) } });
+  if (brd.targetUsers?.length) s.push({ id: 'brd-target-users', title: 'Target Users', table: { headers: ['Persona', 'Description'], rows: brd.targetUsers.map(x => [x.persona, x.description]) } });
+  if (brd.businessRequirements?.length) s.push({ id: 'brd-requirements', title: 'Business Requirements', table: { headers: ['ID', 'Title', 'Priority', 'Description'], rows: brd.businessRequirements.map(x => [x.id || '—', x.title, x.priority, x.description]) } });
+  if (brd.functionalOverview?.length) s.push({ id: 'brd-functional', title: 'Functional Overview', table: { headers: ['Category', 'Description'], rows: brd.functionalOverview.map(x => [x.category, x.description]) } });
+  if (brd.nonFunctionalOverview?.length) s.push({ id: 'brd-nonfunctional', title: 'Non-Functional Overview', table: { headers: ['Category', 'Description'], rows: brd.nonFunctionalOverview.map(x => [x.category, x.description]) } });
+  if (brd.businessRules?.length) s.push({ id: 'brd-rules', title: 'Business Rules', items: brd.businessRules });
+  if (brd.assumptions?.length) s.push({ id: 'brd-assumptions', title: 'Assumptions', items: brd.assumptions });
+  if (brd.constraints?.length) s.push({ id: 'brd-constraints', title: 'Constraints', items: brd.constraints });
+  if (brd.risks?.length) s.push({ id: 'brd-risks', title: 'Risks', table: { headers: ['Risk', 'Impact', 'Mitigation'], rows: brd.risks.map(x => [x.risk, x.impact, x.mitigation || '—']) } });
+  if (brd.successCriteria?.length) s.push({ id: 'brd-success', title: 'Success Criteria', items: brd.successCriteria });
+  if (brd.dependencies?.length) s.push({ id: 'brd-dependencies', title: 'Dependencies', items: brd.dependencies });
+  if (brd.openQuestions?.length) s.push({ id: 'brd-open-questions', title: 'Open Questions', items: brd.openQuestions });
+  return s;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOCK_DOCS = { BRD: MOCK_BRD, SRS: MOCK_SRS, UserStories: MOCK_USER_STORIES, APISpec: MOCK_API_SPEC, DBSchema: MOCK_DB_SCHEMA };
-
 /**
  * Fetch the status of all blueprint documents for a project.
- * Phase 3: GET /api/projects/:projectId/documents
+ * BRD status is resolved from the real backend; others are phase-3 pending.
  * @param {string} projectId
  * @returns {Promise<Object>} Map of docType → { status, currentVersion }
  */
 export const fetchDocumentStatuses = async (projectId) => {
-  // [DEMO] Mock — Phase 3: replace with api.get(`/api/projects/${projectId}/documents`)
-  await new Promise(r => setTimeout(r, 600));
-  return { ...MOCK_STATUS_MAP };
+  let brdStatus = { status: 'not_generated', currentVersion: 0 };
+  try {
+    await api.get(`/api/projects/${projectId}/brd`);
+    brdStatus = { status: 'ready', currentVersion: 1 };
+  } catch (err) {
+    if (err.response?.status !== 404) {
+      console.warn('[WorkspaceService] Unexpected error checking BRD status:', err.message);
+    }
+  }
+  return { BRD: brdStatus, ...MOCK_STATUS_MAP };
 };
 
 /**
  * Fetch a single blueprint document.
- * Phase 3: GET /api/projects/:projectId/documents/:type
+ * BRD uses the real backend; other doc types are Phase 3 pending.
  * @param {string} projectId
  * @param {string} docType - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
- * @returns {Promise<Object>} Structured document data
+ * @returns {Promise<Object>} Structured document data (sections-based shape for ProseDocumentView)
  */
 export const fetchDocument = async (projectId, docType) => {
-  // [DEMO] Mock — Phase 3: replace with api.get(`/api/projects/${projectId}/documents/${docType}`)
-  await new Promise(r => setTimeout(r, 400));
-  const doc = MOCK_DOCS[docType];
-  if (!doc) throw new Error(`Unknown document type: ${docType}`);
-  // Only return "ready" docs; others throw to trigger empty state
-  if (MOCK_STATUS_MAP[docType]?.status !== 'ready') {
-    throw new Error('NOT_GENERATED');
+  if (docType === 'BRD') {
+    try {
+      const response = await api.get(`/api/projects/${projectId}/brd`);
+      const brd = response.data?.data;
+      if (!brd) throw new Error('NOT_GENERATED');
+      return {
+        type: 'BRD',
+        title: brd.title || 'Business Requirements Document',
+        status: 'ready',
+        currentVersion: 1,
+        updatedAt: response.data.updatedAt,
+        sections: normalizeBRDToSections(brd),
+        projectId,
+      };
+    } catch (err) {
+      if (err.message === 'NOT_GENERATED' || err.response?.status === 404) {
+        throw new Error('NOT_GENERATED');
+      }
+      throw err;
+    }
   }
-  return { ...doc, projectId };
+
+  // Other document types not yet backed by a real endpoint — show empty state
+  throw new Error('NOT_GENERATED');
 };
 
 /**
@@ -567,6 +620,17 @@ export const saveDocument = async (projectId, docType, content) => {
   // [DEMO] Mock — Phase 3: replace with api.put(...)
   await new Promise(r => setTimeout(r, 800));
   return { ...content, updatedAt: new Date().toISOString() };
+};
+
+/**
+ * Trigger BRD generation for a project.
+ * Calls POST /api/projects/:projectId/brd/generate
+ * @param {string} projectId
+ * @returns {Promise<Object>} { success, generationId, data }
+ */
+export const generateBRD = async (projectId) => {
+  const response = await api.post(`/api/projects/${projectId}/brd/generate`);
+  return response.data;
 };
 
 /**
