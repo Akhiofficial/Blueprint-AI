@@ -7,7 +7,8 @@ const VersionHistoryPanel = ({
   onViewVersion,
   onRestoreSuccess,
   width = 320,
-  projectId
+  projectId,
+  refreshKey,
 }) => {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,8 @@ const VersionHistoryPanel = ({
 
   useEffect(() => {
     loadHistory();
-  }, [loadHistory]);
+  }, [loadHistory, activeDoc?.currentVersion, activeDoc?.updatedAt, refreshKey]);
+
 
   const handleRestore = async (versionNumber) => {
     if (!projectId || !activeDocId || restoringVersion !== null) return;

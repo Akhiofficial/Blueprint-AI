@@ -6,25 +6,16 @@
  * The primary product screen of BlueprintAI — Step 4 of the workflow:
  *   01 Project → 02 Requirements → 03 Analysis → 04 Blueprint Workspace
  *
- * Layout: custom full-height three-panel IDE-like shell.
- *   [BlueprintSidebar] [DocumentViewer] [ContextPanel]
- *
- * This page uses its OWN layout (not DashboardLayout) because
- * the workspace needs full viewport height with no outer scroll.
- *
- * Authentication: handled by ProtectedRoute — no auth logic here.
- *
- * Phase 3 integration:
- *   - fetchDocumentStatuses → real backend call
- *   - DocumentViewer → uses real document API
- *   - All mock content is isolated in workspaceService.js
+ * Layout: three-panel IDE shell.
+ *   [BlueprintSidebar] [DocumentViewer] [ContextPanel (Chat / History)]
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useProjectsContext } from '../../projects/projects.context';
 import useProjects from '../../projects/hooks/useProjects';
 import { fetchDocumentStatuses, BLUEPRINT_DOCS } from '../services/workspaceService';
+import useWorkspaceResizer from '../hooks/useWorkspaceResizer';
 import BlueprintHeader from '../components/BlueprintHeader';
 import BlueprintSidebar from '../components/BlueprintSidebar';
 import DocumentViewer from '../components/DocumentViewer';
@@ -37,17 +28,15 @@ import ErrorState from '../../../components/common/ErrorState';
 
 const WorkspaceSkeleton = () => (
   <div className="flex flex-1 min-h-0 overflow-hidden">
-    {/* Sidebar skeleton */}
     <div
-      className="hidden lg:block w-55 shrink-0 p-4 space-y-2"
+      className="hidden lg:block shrink-0 p-4 space-y-2"
       style={{ background: '#0D1117', borderRight: '1px solid rgba(255,255,255,0.07)', width: 220 }}
     >
       <div className="skeleton h-3 rounded-lg w-2/3 mb-4" />
-      {[1,2,3,4,5].map(i => (
+      {[1, 2, 3, 4, 5].map(i => (
         <div key={i} className="skeleton h-9 rounded-lg" />
       ))}
     </div>
-    {/* Center skeleton */}
     <div className="flex-1 p-6 space-y-4" style={{ background: '#080B0F' }}>
       <div className="skeleton h-7 rounded-xl w-1/4 mb-6" />
       <div className="skeleton h-4 rounded-lg w-full" />
@@ -65,41 +54,44 @@ const WorkspaceSkeleton = () => (
 const WorkspacePage = () => {
   const { id: projectId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const { currentProject, loading: projectLoading } = useProjectsContext();
   const { handleFetchProjectById } = useProjects();
 
-  // ── State ──
-  const [docStatuses,  setDocStatuses]  = useState({});
-  const [statusLoading,setStatusLoading]= useState(true);
-  const [statusError,  setStatusError]  = useState(false);
-  const [activeDocId,  setActiveDocId]  = useState(() => {
+  // ── Document & UI State ──
+  const [docStatuses, setDocStatuses] = useState({});
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState(false);
+  const [activeDocId, setActiveDocId] = useState(() => {
     const paramDoc = searchParams.get('doc');
     const validId = BLUEPRINT_DOCS.find(d => d.id === paramDoc)?.id;
     return validId || 'BRD';
   });
-  const [saveState,    setSaveState]    = useState(null); // 'saved'|'saving'|'unsaved'|null
-  const [activeDoc,    setActiveDoc]    = useState(null);
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
-  const [exportOpen,   setExportOpen]   = useState(false);
+  const [saveState, setSaveState] = useState(null); // 'saved'|'saving'|'unsaved'|null
+  const [activeDoc, setActiveDoc] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [activeRightPanel, setActiveRightPanel] = useState('chat'); // 'chat' | 'history' | null
   const [previewVersion, setPreviewVersion] = useState(null);
   const [triggerSave, setTriggerSave] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // ── Resizing State ──
-  const [sidebarWidth, setSidebarWidth] = useState(220);
-  const [rightPanelWidth, setRightPanelWidth] = useState(320);
-  const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
-  const [isDraggingRightPanel, setIsDraggingRightPanel] = useState(false);
+  // ── Draggable Panel Resizing ──
+  const {
+    sidebarWidth,
+    rightPanelWidth,
+    isDraggingSidebar,
+    isDraggingRightPanel,
+    setIsDraggingSidebar,
+    setIsDraggingRightPanel,
+  } = useWorkspaceResizer();
 
   // ── Load project if not in context ──
   useEffect(() => {
     if (!currentProject || currentProject._id !== projectId) {
       handleFetchProjectById(projectId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, currentProject, handleFetchProjectById]);
 
   // ── Load document statuses ──
   const loadStatuses = useCallback(async () => {
@@ -127,7 +119,7 @@ const WorkspacePage = () => {
     setPreviewVersion(null);
   }, [setSearchParams]);
 
-  // ── Handle unsaved changes on navigation ──
+  // ── Handle unsaved changes on window navigation ──
   useEffect(() => {
     const handler = (e) => {
       if (saveState === 'unsaved') {
@@ -139,48 +131,20 @@ const WorkspacePage = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [saveState]);
 
-  // ── Resizer logic ──
-  const handleMouseMove = useCallback((e) => {
-    if (isDraggingSidebar) {
-      const newWidth = Math.max(180, Math.min(e.clientX, 400));
-      setSidebarWidth(newWidth);
-    } else if (isDraggingRightPanel) {
-      const newWidth = Math.max(280, Math.min(window.innerWidth - e.clientX, 600));
-      setRightPanelWidth(newWidth);
-    }
-  }, [isDraggingSidebar, isDraggingRightPanel]);
+  // ── Handle save propagation ──
+  const handleDocumentSaved = useCallback((updatedDoc) => {
+    setActiveDoc(updatedDoc);
+    setDocStatuses(prev => ({
+      ...prev,
+      [activeDocId]: {
+        status: 'ready',
+        currentVersion: updatedDoc.currentVersion,
+      }
+    }));
+    setRefreshKey(k => k + 1);
+  }, [activeDocId]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDraggingSidebar(false);
-    setIsDraggingRightPanel(false);
-  }, []);
-
-  useEffect(() => {
-    if (isDraggingSidebar || isDraggingRightPanel) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'col-resize';
-    } else {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-    };
-  }, [isDraggingSidebar, isDraggingRightPanel, handleMouseMove, handleMouseUp]);
-
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // ── Project name ──
   const projectName = projectLoading ? '…' : currentProject?.title ?? 'Project';
-
-  // ── Active doc label ──
   const activeDocMeta = BLUEPRINT_DOCS.find(d => d.id === activeDocId);
 
   return (
@@ -216,7 +180,6 @@ const WorkspacePage = () => {
         </div>
       ) : (
         <div className="flex flex-1 min-h-0 overflow-hidden">
-
           {/* ── Left: Blueprint Sidebar ── */}
           <BlueprintSidebar
             width={sidebarWidth}
@@ -253,6 +216,7 @@ const WorkspacePage = () => {
               activeDocId={activeDocId}
               docStatuses={docStatuses}
               onDocumentLoaded={setActiveDoc}
+              onDocumentSaved={handleDocumentSaved}
               onSaveStateChange={setSaveState}
               onDocumentGenerated={loadStatuses}
               externalDocUpdate={activeDoc}
@@ -283,7 +247,6 @@ const WorkspacePage = () => {
               activeDocId={activeDocId}
               onDocumentRefined={(updatedDoc) => {
                 setActiveDoc(updatedDoc);
-                // Trigger a save state change to show success momentarily
                 setSaveState('saved');
                 setTimeout(() => setSaveState(null), 3000);
               }}
@@ -296,6 +259,7 @@ const WorkspacePage = () => {
               activeDocId={activeDocId}
               activeDoc={activeDoc}
               projectId={projectId}
+              refreshKey={refreshKey}
               onViewVersion={(v) => setPreviewVersion(v)}
               onRestoreSuccess={() => {
                 setPreviewVersion(null);
@@ -306,7 +270,6 @@ const WorkspacePage = () => {
           )}
         </div>
       )}
-
 
       {/* ── Export Dialog ── */}
       <ExportDialog
