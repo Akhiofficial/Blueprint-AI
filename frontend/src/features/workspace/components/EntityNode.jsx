@@ -5,14 +5,15 @@ const EntityNode = ({ data, selected }) => {
   
   if (!entity) return null;
   
-  const displayFields = entity.fields.slice(0, 5);
-  const hiddenCount = entity.fields.length - 5;
+  const fields = entity.fields || [];
+  const displayFields = fields.slice(0, 6);
+  const hiddenCount = fields.length - 6;
 
   return (
     <div 
       className="rounded-lg shadow-lg relative group transition-all"
       style={{
-        width: 180,
+        width: 190,
         background: '#11161D',
         border: selected 
           ? '1px solid rgba(59,130,246,0.8)' 
@@ -38,13 +39,13 @@ const EntityNode = ({ data, selected }) => {
 
       {/* Header bar */}
       <div 
-        className="px-3 py-2 flex items-center rounded-t-lg"
+        className="px-3 py-2 flex items-center justify-between rounded-t-lg"
         style={{ 
           background: 'rgba(59,130,246,0.15)',
           borderBottom: '1px solid rgba(59,130,246,0.2)' 
         }}
       >
-        <h3 className="text-xs font-semibold tracking-wide text-blue-100 truncate w-full font-sans">
+        <h3 className="text-xs font-semibold tracking-wide text-blue-100 truncate w-full font-sans" title={entity.name}>
           {entity.name}
         </h3>
       </div>
@@ -52,16 +53,20 @@ const EntityNode = ({ data, selected }) => {
       {/* Fields */}
       <div className="p-2 flex flex-col gap-1">
         {displayFields.map((field, i) => (
-          <div key={field.name} className="flex justify-between items-center px-1">
+          <div key={field.name || i} className="flex justify-between items-center px-1">
             <span 
               className="text-[0.6rem] truncate mr-2" 
-              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'JetBrains Mono', monospace" }}
+              style={{
+                color: (field.constraint || '').includes('PK') ? '#22D3EE' : (field.constraint || '').includes('FK') ? '#C084FC' : 'rgba(255,255,255,0.7)',
+                fontFamily: "'JetBrains Mono', monospace"
+              }}
+              title={field.name}
             >
               {field.name}
             </span>
             <span 
-              className="text-[0.55rem]" 
-              style={{ color: 'rgba(34,211,238,0.7)', fontFamily: "'JetBrains Mono', monospace" }}
+              className="text-[0.55rem] shrink-0" 
+              style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'JetBrains Mono', monospace" }}
             >
               {field.type}
             </span>

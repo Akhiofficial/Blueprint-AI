@@ -1,16 +1,15 @@
 /**
  * UserStoryView.jsx
  *
- * Renders User Stories as structured story cards.
- * NOT a plain text document — each story has its own card with:
- *   - Story ID badge
- *   - As a / I want / So that format
- *   - Actor + Priority badges
- *   - Acceptance Criteria list
- *   - Individual Regenerate action
+ * Renders User Stories as structured story cards with view and edit modes.
+ * In edit mode, allows direct editing of:
+ *   - Story ID, Title, Priority
+ *   - Role ("As a"), Want ("I want"), Benefit ("So that")
+ *   - Actor
+ *   - Acceptance Criteria (one item per line)
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 
 const PriorityBadge = ({ priority }) => {
   const cls = {
@@ -28,8 +27,120 @@ const PriorityBadge = ({ priority }) => {
   );
 };
 
-const StoryCard = ({ story, onRegen, isRegenerating }) => {
+const StoryCard = memo(({
+  story,
+  isEditing,
+  onStoryChange,
+  onRegen,
+  isRegenerating
+}) => {
   const [showRegenConfirm, setShowRegenConfirm] = useState(false);
+
+  const handleFieldChange = (field, value) => {
+    onStoryChange?.({ ...story, [field]: value });
+  };
+
+  const handleCriteriaChange = (e) => {
+    const list = e.target.value.split('\n').filter(line => line.trim().length > 0);
+    handleFieldChange('acceptanceCriteria', list);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="ws-story-card p-5 space-y-4" style={{ borderColor: 'rgba(59,130,246,0.3)' }}>
+        {/* Card Header Edit */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 flex-1">
+            <span
+              className="bp-mono px-2 py-1 rounded text-xs font-semibold"
+              style={{
+                background: 'rgba(34,211,238,0.08)',
+                border: '1px solid rgba(34,211,238,0.15)',
+                color: '#22D3EE',
+                fontSize: '0.65rem',
+              }}
+            >
+              {story.id}
+            </span>
+            <input
+              type="text"
+              className="flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold bg-white/5 border border-white/10 text-white focus:border-blue-500 outline-none"
+              value={story.title || ''}
+              onChange={(e) => handleFieldChange('title', e.target.value)}
+              placeholder="Story Title"
+            />
+          </div>
+          <select
+            value={story.priority || 'Medium'}
+            onChange={(e) => handleFieldChange('priority', e.target.value)}
+            className="rounded-lg px-2.5 py-1.5 text-xs font-medium bg-[#11161D] border border-white/15 text-white outline-none cursor-pointer"
+          >
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+          </select>
+        </div>
+
+        {/* Story Body Edit — As a / I want / So that */}
+        <div
+          className="rounded-lg px-4 py-3.5 space-y-3"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 font-medium text-xs" style={{ color: '#60A5FA', minWidth: 60 }}>As a</span>
+            <input
+              type="text"
+              className="flex-1 rounded px-2.5 py-1 text-xs bg-white/5 border border-white/10 text-white focus:border-blue-500 outline-none"
+              value={story.role || ''}
+              onChange={(e) => {
+                handleFieldChange('role', e.target.value);
+                if (!story.actor || story.actor === story.role) {
+                  handleFieldChange('actor', e.target.value);
+                }
+              }}
+              placeholder="User role (e.g. Registered Student)"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 font-medium text-xs" style={{ color: '#60A5FA', minWidth: 60 }}>I want</span>
+            <input
+              type="text"
+              className="flex-1 rounded px-2.5 py-1 text-xs bg-white/5 border border-white/10 text-white focus:border-blue-500 outline-none"
+              value={story.want || ''}
+              onChange={(e) => handleFieldChange('want', e.target.value)}
+              placeholder="Goal (e.g. view my active bookings)"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 font-medium text-xs" style={{ color: '#60A5FA', minWidth: 60 }}>So that</span>
+            <input
+              type="text"
+              className="flex-1 rounded px-2.5 py-1 text-xs bg-white/5 border border-white/10 text-white focus:border-blue-500 outline-none"
+              value={story.benefit || ''}
+              onChange={(e) => handleFieldChange('benefit', e.target.value)}
+              placeholder="Benefit (e.g. I can keep track of my schedule)"
+            />
+          </div>
+        </div>
+
+        {/* Acceptance Criteria Edit */}
+        <div>
+          <label
+            className="block bp-mono uppercase mb-1.5"
+            style={{ fontSize: '0.6rem', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)' }}
+          >
+            Acceptance Criteria (One per line)
+          </label>
+          <textarea
+            className="w-full rounded-lg px-3 py-2 text-xs bg-white/5 border border-white/10 text-white focus:border-blue-500 outline-none min-h-[80px]"
+            value={(story.acceptanceCriteria || []).join('\n')}
+            onChange={handleCriteriaChange}
+            placeholder="✓ User can see list of items&#10;✓ Click item to view details"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ws-story-card p-5 ws-enter-up">
@@ -78,7 +189,7 @@ const StoryCard = ({ story, onRegen, isRegenerating }) => {
       {/* Meta row */}
       <div className="flex items-center gap-4 mb-4 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
         <span>
-          Actor: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{story.actor}</span>
+          Actor: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{story.actor || story.role}</span>
         </span>
       </div>
 
@@ -91,7 +202,7 @@ const StoryCard = ({ story, onRegen, isRegenerating }) => {
           Acceptance Criteria
         </p>
         <ul className="space-y-1.5">
-          {story.acceptanceCriteria.map((criterion, i) => (
+          {(story.acceptanceCriteria || []).map((criterion, i) => (
             <li
               key={i}
               className="flex gap-2.5 text-xs"
@@ -145,22 +256,53 @@ const StoryCard = ({ story, onRegen, isRegenerating }) => {
       </div>
     </div>
   );
-};
+});
 
-const UserStoryView = ({ document, regenStoryId, onRegenStory }) => {
+StoryCard.displayName = 'StoryCard';
+
+const UserStoryView = ({ document, isEditing, onStoriesChange, regenStoryId, onRegenStory }) => {
+  const [draftStories, setDraftStories] = useState(() => document?.stories || []);
+
+  // Sync draft when document changes or edit mode toggles
+  useEffect(() => {
+    if (document?.stories) {
+      setDraftStories(document.stories);
+    }
+  }, [document?.stories, isEditing]);
+
+  const handleStoryChange = useCallback((idx, updatedStory) => {
+    setDraftStories(prev => {
+      const next = [...prev];
+      next[idx] = updatedStory;
+      onStoriesChange?.(next);
+      return next;
+    });
+  }, [onStoriesChange]);
+
   if (!document?.stories) return null;
+
+  const displayList = isEditing ? draftStories : (document.stories || []);
 
   return (
     <div className="px-6 py-5 space-y-4">
       {/* Header count */}
-      <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-        {document.stories.length} stories
-      </p>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          {displayList.length} stories
+        </p>
+        {isEditing && (
+          <span className="text-xs text-blue-400 font-medium">
+            Editing Story Cards
+          </span>
+        )}
+      </div>
 
-      {document.stories.map((story, idx) => (
-        <div key={story.id} style={{ animationDelay: `${idx * 60}ms` }}>
+      {displayList.map((story, idx) => (
+        <div key={story.id || idx} style={isEditing ? undefined : { animationDelay: `${idx * 60}ms` }}>
           <StoryCard
             story={story}
+            isEditing={isEditing}
+            onStoryChange={(updated) => handleStoryChange(idx, updated)}
             onRegen={onRegenStory}
             isRegenerating={regenStoryId === story.id}
           />
@@ -171,3 +313,4 @@ const UserStoryView = ({ document, regenStoryId, onRegenStory }) => {
 };
 
 export default UserStoryView;
+

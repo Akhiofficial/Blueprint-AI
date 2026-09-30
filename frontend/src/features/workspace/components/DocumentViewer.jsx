@@ -9,7 +9,7 @@
  *   4. Delegate document rendering to DocRenderer.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   fetchDocument,
   saveDocument,
@@ -56,6 +56,9 @@ const DocumentViewer = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError]         = useState(null);
 
+  const editChangesRef = useRef({});
+  const isDirtyRef = useRef(false);
+
   // ── Load document when active doc changes ──
   const loadDocument = useCallback(async () => {
     if (!activeDocId || !projectId) return;
@@ -64,6 +67,8 @@ const DocumentViewer = ({
     setDocument(null);
     setIsEditing(false);
     setEditChanges({});
+    editChangesRef.current = {};
+    isDirtyRef.current = false;
     onSaveStateChange?.(null);
 
     try {
@@ -84,7 +89,7 @@ const DocumentViewer = ({
         setLoadState('error');
       }
     }
-  }, [activeDocId, projectId]);
+  }, [activeDocId, projectId, onDocumentLoaded, onSaveStateChange]);
 
   useEffect(() => {
     loadDocument();
@@ -102,23 +107,50 @@ const DocumentViewer = ({
     if (externalDocUpdate && document && externalDocUpdate.type === document.type) {
       setDocument(externalDocUpdate);
     }
-  }, [externalDocUpdate]);
+  }, [externalDocUpdate, document]);
 
   // ── Editing handlers ──
   const handleEdit = () => {
     setIsEditing(true);
+    isDirtyRef.current = false;
     onSaveStateChange?.('unsaved');
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditChanges({});
+    editChangesRef.current = {};
+    isDirtyRef.current = false;
     onSaveStateChange?.(null);
   };
 
+  const markDirty = useCallback(() => {
+    if (!isDirtyRef.current) {
+      isDirtyRef.current = true;
+      onSaveStateChange?.('unsaved');
+    }
+  }, [onSaveStateChange]);
+
   const handleFieldChange = (sectionId, value) => {
+    editChangesRef.current[sectionId] = value;
     setEditChanges(prev => ({ ...prev, [sectionId]: value }));
+    markDirty();
   };
+
+  const handleStoriesChange = useCallback((stories) => {
+    editChangesRef.current.stories = stories;
+    markDirty();
+  }, [markDirty]);
+
+  const handleEndpointsChange = useCallback((endpoints) => {
+    editChangesRef.current.endpoints = endpoints;
+    markDirty();
+  }, [markDirty]);
+
+  const handleEntitiesChange = useCallback((entities) => {
+    editChangesRef.current.entities = entities;
+    markDirty();
+  }, [markDirty]);
 
   // ── Save edited content ──
   const handleSave = async () => {
@@ -130,10 +162,12 @@ const DocumentViewer = ({
 
       if (document.sections) {
         structuredContent = document.sections.map(section => {
-          const edited = editChanges[section.id];
+          const edited = editChangesRef.current[section.id] !== undefined
+            ? editChangesRef.current[section.id]
+            : editChanges[section.id];
           if (edited === undefined) return section;
           if (section.items) {
-            return { ...section, items: edited.split('\n').filter(Boolean) };
+            return { ...section, items: typeof edited === 'string' ? edited.split('\n').filter(Boolean) : edited };
           }
           if (section.table) {
             try {
@@ -148,11 +182,11 @@ const DocumentViewer = ({
           return { ...section, content: edited };
         });
       } else if (document.stories) {
-        structuredContent = document.stories;
+        structuredContent = editChangesRef.current.stories || editChanges.stories || document.stories;
       } else if (document.endpoints) {
-        structuredContent = document.endpoints;
+        structuredContent = editChangesRef.current.endpoints || editChanges.endpoints || document.endpoints;
       } else if (document.entities) {
-        structuredContent = document.entities;
+        structuredContent = editChangesRef.current.entities || editChanges.entities || document.entities;
       } else {
         structuredContent = document;
       }
@@ -175,6 +209,8 @@ const DocumentViewer = ({
       setDocument(updatedDocument);
       setIsEditing(false);
       setEditChanges({});
+      editChangesRef.current = {};
+      isDirtyRef.current = false;
       onSaveStateChange?.('saved');
       onDocumentLoaded?.(updatedDocument);
       onDocumentSaved?.(updatedDocument);
@@ -294,6 +330,9 @@ const DocumentViewer = ({
             document={displayDocument}
             isEditing={isEditing && !previewVersion}
             onFieldChange={handleFieldChange}
+            onStoriesChange={handleStoriesChange}
+            onEndpointsChange={handleEndpointsChange}
+            onEntitiesChange={handleEntitiesChange}
             regenSectionId={regenSectionId}
             onRegenSection={handleRegenSection}
           />

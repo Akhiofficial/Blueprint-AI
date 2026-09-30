@@ -46,7 +46,7 @@ router.route('/:docType/versions').get(getVersionHistory);
 router.route('/:docType/versions/:versionNumber').get(getVersionContent);
 
 // Restore document to a specific version snapshot
-router.route('/:docType/restore/:versionNumber').put(restoreVersion);
+router.route('/:docType/restore/:versionNumber').put(restoreVersion).post(restoreVersion);
 
 export default router;
 
