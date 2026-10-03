@@ -13,6 +13,10 @@ const RegisterForm = ({ onSubmit, isLoading, error }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (form.password.length < 8) {
+      setLocalError('Password must be at least 8 characters');
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setLocalError('Passwords do not match');
       return;
@@ -83,6 +87,7 @@ const RegisterForm = ({ onSubmit, isLoading, error }) => {
           name="password"
           type="password"
           required
+          minLength={8}
           placeholder="Min. 8 characters"
           value={form.password}
           onChange={handleChange}

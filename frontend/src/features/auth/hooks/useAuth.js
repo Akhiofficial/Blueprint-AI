@@ -43,7 +43,7 @@ const useAuth = () => {
       setUser(user);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed. Please try again.';
+      const message = err.message || err.response?.data?.message || 'Registration failed. Please try again.';
       setError(message);
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ const useAuth = () => {
       setUser(user);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please try again.';
+      const message = err.message || err.response?.data?.message || 'Login failed. Please try again.';
       setError(message);
     } finally {
       setLoading(false);
