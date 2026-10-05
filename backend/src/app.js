@@ -11,6 +11,7 @@ import requirementRoutes from './routes/requirementRoutes.js';
 import brdRoutes from './routes/brdRoutes.js';
 import generationRoutes from './routes/generationRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
+import exportRoutes from './routes/exportRoutes.js';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/projects/:projectId/requirements', requirementRoutes);
 app.use('/api/projects/:projectId/brd', brdRoutes);
 app.use('/api/projects/:projectId/generations', generationRoutes);
 app.use('/api/projects/:projectId/documents', documentRoutes);
+app.use('/api/projects/:projectId/export', exportRoutes);
 
 
 // ── Health check
