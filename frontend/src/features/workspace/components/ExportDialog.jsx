@@ -1,14 +1,37 @@
-import { useState, useEffect } from 'react';
-import { BLUEPRINT_DOCS } from '../services/workspaceService';
+import { useState, useEffect, useRef } from 'react';
+import {
+  BLUEPRINT_DOCS,
+  downloadExport,
+  triggerBlobDownload,
+  getExportFilename,
+  extractExportErrorMessage,
+} from '../services/workspaceService';
+import { useToast } from '../../../components/common/ToastContext';
 
-const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, onSave }) => {
+const ExportDialog = ({
+  isOpen,
+  onClose,
+  docStatuses,
+  activeDocId,
+  saveState,
+  onSave,
+  projectId,
+  projectName,
+}) => {
+  const toast = useToast();
+
   const [exportScope, setExportScope] = useState('all'); // 'current' | 'all'
   
   // Keep track of which documents the user has manually selected
   const [manualSelection, setManualSelection] = useState([]);
   
   const [format, setFormat] = useState('pdf');
+  const [exportMode, setExportMode] = useState('combined'); // 'combined' | 'separate'
   const [exportState, setExportState] = useState('idle'); // idle | unsaved_warning | exporting | success | error
+  const [pendingSaveAndExport, setPendingSaveAndExport] = useState(false);
+
+  const isSubmittingRef = useRef(false);
+  const wasSavingRef = useRef(false);
 
   // Reset state when opened
   useEffect(() => {
@@ -16,12 +39,14 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
       setExportState('idle');
       setExportScope('all');
       setFormat('pdf');
+      setExportMode('combined');
+      setPendingSaveAndExport(false);
+      isSubmittingRef.current = false;
+      wasSavingRef.current = false;
       const generatedDocs = BLUEPRINT_DOCS.filter(d => docStatuses?.[d.id]?.status === 'ready').map(d => d.id);
       setManualSelection(generatedDocs);
     }
   }, [isOpen, docStatuses]);
-
-  if (!isOpen) return null;
 
   // Determine active selection based on scope
   const selectedDocs = exportScope === 'current' 
@@ -44,7 +69,104 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
     setManualSelection([]);
   };
 
+  // ── Core Export Function ──
+  const executeExport = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setExportState('exporting');
+
+    const isCurrent = exportScope === 'current';
+    const docTypeToExport = isCurrent ? activeDocId : undefined;
+    const docTypesToExport = isCurrent ? [activeDocId] : selectedDocs;
+
+    try {
+      if (isCurrent && docStatuses?.[activeDocId]?.status !== 'ready') {
+        throw new Error(`The document '${activeDocId}' has not been generated yet.`);
+      }
+
+      const response = await downloadExport({
+        projectId,
+        scope: exportScope,
+        docType: docTypeToExport,
+        docTypes: docTypesToExport,
+        format,
+        mode: exportMode,
+      });
+
+      const filename = getExportFilename({
+        response,
+        projectName,
+        docType: docTypeToExport,
+        scope: exportScope,
+        format,
+        mode: exportMode,
+      });
+
+      triggerBlobDownload(response.data, filename);
+
+      // Toast notification
+      if (isCurrent) {
+        const docMeta = BLUEPRINT_DOCS.find(d => d.id === activeDocId);
+        const docLabel = docMeta?.label || activeDocId;
+        toast.success(`${docLabel} exported successfully.`);
+      } else if (exportMode === 'separate' && docTypesToExport.length > 1) {
+        toast.success('Separate documents ZIP archive exported successfully.');
+      } else {
+        toast.success('Blueprint exported successfully.');
+      }
+
+      setExportState('idle');
+      onClose();
+    } catch (err) {
+      console.error('Export failed:', err);
+      const errorMsg = await extractExportErrorMessage(err, 'Failed to export document. Please try again.');
+      toast.error(errorMsg);
+      setExportState('idle');
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  };
+
+  // ── Handle Save & Export coordination ──
+  useEffect(() => {
+    if (!pendingSaveAndExport) {
+      wasSavingRef.current = false;
+      return;
+    }
+
+    if (saveState === 'saving') {
+      wasSavingRef.current = true;
+    }
+
+    // Save completed successfully! Now export the freshly persisted document
+    if (saveState === 'saved') {
+      setPendingSaveAndExport(false);
+      wasSavingRef.current = false;
+      executeExport();
+    } else if (wasSavingRef.current && saveState === 'unsaved') {
+      // Save started but ended up back in unsaved (failure)
+      setPendingSaveAndExport(false);
+      wasSavingRef.current = false;
+      setExportState('idle');
+      toast.error('Failed to save document changes. Export cancelled.');
+    }
+  }, [saveState, pendingSaveAndExport]);
+
   const handleInitialExport = () => {
+    if (exportState === 'exporting' || isSubmittingRef.current) return;
+
+    if (exportScope === 'current') {
+      if (docStatuses?.[activeDocId]?.status !== 'ready') {
+        toast.error(`The document '${activeDocId}' has not been generated yet.`);
+        return;
+      }
+    } else {
+      if (selectedDocs.length === 0) {
+        toast.error('No ready documents selected for export.');
+        return;
+      }
+    }
+
     // If the active doc is selected and it has unsaved changes, warn the user
     if (saveState === 'unsaved' && selectedDocs.includes(activeDocId)) {
       setExportState('unsaved_warning');
@@ -53,24 +175,20 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
     }
   };
 
-  const executeExport = async () => {
+  const handleSaveAndExport = () => {
+    setPendingSaveAndExport(true);
     setExportState('exporting');
-    // Simulate export delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setExportState('success');
-  };
-
-  const handleSaveAndExport = async () => {
-    setExportState('exporting');
-    if (onSave) onSave(); // Trigger the save via WorkspacePage -> DocumentViewer
-    // We assume the save will eventually succeed, simulate full operation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setExportState('success');
+    if (onSave) {
+      onSave(); // Trigger the save via WorkspacePage -> DocumentViewer
+    }
   };
 
   const handleExportSavedVersion = () => {
+    setPendingSaveAndExport(false);
     executeExport();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -166,25 +284,6 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
                 Preparing {format.toUpperCase()} files. Please wait.
               </p>
-            </div>
-          )}
-
-          {exportState === 'success' && (
-            <div className="flex flex-col items-center justify-center text-center py-8">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34D399' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </div>
-              <h3 className="text-sm font-semibold mb-2" style={{ color: '#34D399' }}>Frontend Export UI implemented</h3>
-              <p className="text-sm max-w-[280px] mx-auto leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                The UI workflow is complete. Backend export endpoints are still required in Phase 3 to generate the actual {format.toUpperCase()} download.
-              </p>
-              <button
-                onClick={onClose}
-                className="px-6 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                Close
-              </button>
             </div>
           )}
 
@@ -284,6 +383,7 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* PDF Option */}
                   <button
+                    type="button"
                     onClick={() => setFormat('pdf')}
                     className="p-3 rounded-xl text-left transition-all border border-transparent"
                     style={{
@@ -307,6 +407,7 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
 
                   {/* Markdown Option */}
                   <button
+                    type="button"
                     onClick={() => setFormat('markdown')}
                     className="p-3 rounded-xl text-left transition-all border border-transparent"
                     style={{
@@ -328,6 +429,72 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
                   </button>
                 </div>
               </div>
+
+              {/* Export Mode (Combined vs Separate PDFs) */}
+              {format === 'pdf' && (
+                <div>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    Export Mode
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setExportMode('combined')}
+                      className="p-3 rounded-xl text-left transition-all border"
+                      style={{
+                        background: exportMode === 'combined' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
+                        borderColor: exportMode === 'combined' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div
+                          className="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                          style={{
+                            borderColor: exportMode === 'combined' ? '#3B82F6' : 'rgba(255,255,255,0.3)',
+                            background: exportMode === 'combined' ? 'rgba(59,130,246,0.2)' : 'transparent',
+                          }}
+                        >
+                          {exportMode === 'combined' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                        </div>
+                        <span className="text-xs font-medium" style={{ color: exportMode === 'combined' ? '#60A5FA' : 'rgba(255,255,255,0.85)' }}>
+                          Combined PDF
+                        </span>
+                      </div>
+                      <p className="text-[0.65rem] leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                        Single dossier containing all selected documents.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExportMode('separate')}
+                      className="p-3 rounded-xl text-left transition-all border"
+                      style={{
+                        background: exportMode === 'separate' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
+                        borderColor: exportMode === 'separate' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div
+                          className="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                          style={{
+                            borderColor: exportMode === 'separate' ? '#3B82F6' : 'rgba(255,255,255,0.3)',
+                            background: exportMode === 'separate' ? 'rgba(59,130,246,0.2)' : 'transparent',
+                          }}
+                        >
+                          {exportMode === 'separate' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                        </div>
+                        <span className="text-xs font-medium" style={{ color: exportMode === 'separate' ? '#60A5FA' : 'rgba(255,255,255,0.85)' }}>
+                          Separate PDFs
+                        </span>
+                      </div>
+                      <p className="text-[0.65rem] leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                        Individual PDF files (packaged as ZIP if multiple).
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -354,22 +521,25 @@ const ExportDialog = ({ isOpen, onClose, docStatuses, activeDocId, saveState, on
             <button
               id="export-submit-btn"
               onClick={handleInitialExport}
-              disabled={selectedDocs.length === 0}
-              className="text-xs px-5 py-2.5 rounded-lg font-medium transition-all shadow-lg flex items-center gap-2"
+              disabled={selectedDocs.length === 0 || exportState === 'exporting'}
+              className="text-xs px-5 py-2.5 rounded-lg font-medium transition-all shadow-lg flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: selectedDocs.length > 0
                   ? 'linear-gradient(135deg,#1E40AF,#3B82F6)'
                   : 'rgba(255,255,255,0.06)',
                 color: selectedDocs.length > 0 ? '#fff' : 'rgba(255,255,255,0.3)',
                 boxShadow: selectedDocs.length > 0 ? '0 4px 12px rgba(59,130,246,0.25)' : 'none',
-                cursor: selectedDocs.length > 0 ? 'pointer' : 'not-allowed',
               }}
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
                 <path d="M8 2v8M4 7l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              {exportScope === 'current' ? `Export ${activeDocId}` : `Export Blueprint ${selectedDocs.length > 0 ? `(${selectedDocs.length})` : ''}`}
+              {exportScope === 'current'
+                ? `Export ${activeDocId}`
+                : exportMode === 'separate' && selectedDocs.length > 1
+                ? `Export ZIP (${selectedDocs.length} PDFs)`
+                : `Export Blueprint ${selectedDocs.length > 0 ? `(${selectedDocs.length})` : ''}`}
             </button>
           </div>
         )}

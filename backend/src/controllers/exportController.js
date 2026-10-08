@@ -33,7 +33,8 @@ export const exportProjectDocuments = asyncHandler(async (req, res) => {
     throw new Error("Missing or invalid 'format'. Supported values: 'markdown', 'pdf'.");
   }
 
-  const { scope, docType } = req.query;
+  const { scope, docType, docTypes, mode, exportMode } = req.query;
+  const resolvedMode = String(mode || exportMode || 'combined').toLowerCase().trim() === 'separate' ? 'separate' : 'combined';
 
   // ── Route: Single document ───────────────────────────────────────────────
   if (docType) {
@@ -42,21 +43,31 @@ export const exportProjectDocuments = asyncHandler(async (req, res) => {
       ownerId,
       docType: String(docType).trim(),
       format,
+      mode: resolvedMode,
       res,
     });
   }
 
-  // ── Route: All documents ─────────────────────────────────────────────────
-  if (scope === 'all') {
+  // ── Route: All / Selected documents ──────────────────────────────────────
+  if (scope === 'all' || docTypes) {
+    let parsedDocTypes = null;
+    if (docTypes) {
+      parsedDocTypes = Array.isArray(docTypes)
+        ? docTypes.map(t => String(t).trim()).filter(Boolean)
+        : String(docTypes).split(',').map(t => t.trim()).filter(Boolean);
+    }
+
     return await exportService.exportAllDocuments({
       projectId,
       ownerId,
       format,
+      docTypes: parsedDocTypes,
+      mode: resolvedMode,
       res,
     });
   }
 
-  // ── Neither docType nor scope=all ────────────────────────────────────────
+  // ── Neither docType nor scope=all / docTypes ─────────────────────────────
   res.status(400);
-  throw new Error("Please provide a 'docType' query parameter for a single document, or 'scope=all' for all documents.");
+  throw new Error("Please provide a 'docType' query parameter for a single document, or 'scope=all' / 'docTypes' for selected documents.");
 });

@@ -675,3 +675,132 @@ export const refineDocument = async (projectId, docType, instruction, currentDoc
   };
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Document Export API
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Downloads exported document(s) from the backend as a Blob stream.
+ *
+ * @param {object} params
+ * @param {string} params.projectId - MongoDB project ID
+ * @param {'current' | 'all'} params.scope - Export scope
+ * @param {string} [params.docType] - Document type ('BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema')
+ * @param {'pdf' | 'markdown'} params.format - Format: 'pdf' | 'markdown'
+ * @returns {Promise<import('axios').AxiosResponse<Blob>>} Full Axios response with Blob data and headers
+ */
+export const downloadExport = async ({ projectId, scope, docType, docTypes, format, mode = 'combined' }) => {
+  const params = {};
+
+  if (scope === 'all') {
+    params.scope = 'all';
+  } else if (docType) {
+    params.docType = docType;
+  }
+
+  if (docTypes && Array.isArray(docTypes) && docTypes.length > 0) {
+    params.docTypes = docTypes.join(',');
+  } else if (typeof docTypes === 'string' && docTypes) {
+    params.docTypes = docTypes;
+  }
+
+  params.format = format;
+  if (mode) {
+    params.mode = mode;
+  }
+
+  const response = await api.get(`/api/projects/${projectId}/export`, {
+    params,
+    responseType: 'blob',
+  });
+
+  return response;
+};
+
+/**
+ * Extract safe download filename from Axios response headers or fallback.
+ */
+export const getExportFilename = ({ response, projectName, docType, scope, format, mode = 'combined' }) => {
+  const disposition = response?.headers?.['content-disposition'] || response?.headers?.['Content-Disposition'];
+  if (disposition) {
+    const match = disposition.match(/filename=["']?([^"';]+)["']?/i);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+
+  const cleanProject = (projectName || 'Project')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '') || 'Project';
+
+  if (mode === 'separate') {
+    if (scope === 'all') {
+      return 'BlueprintAI_Export.zip';
+    }
+    const docMap = {
+      BRD: 'BRD',
+      SRS: 'SRS',
+      UserStories: 'User-Stories',
+      APISpec: 'REST-API',
+      DBSchema: 'Database',
+    };
+    const name = docMap[docType] || (docType || 'Document');
+    const ext = format === 'markdown' ? 'md' : 'pdf';
+    return `${name}.${ext}`;
+  }
+
+  const ext = format === 'markdown' ? 'md' : 'pdf';
+
+  if (scope === 'all') {
+    return `BlueprintAI_${cleanProject}_All_Documents.${ext}`;
+  }
+
+  const cleanDoc = (docType || 'Document')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '') || 'Document';
+
+  return `BlueprintAI_${cleanProject}_${cleanDoc}.${ext}`;
+};
+
+/**
+ * Triggers browser download for a Blob and cleans up object URL.
+ */
+export const triggerBlobDownload = (blob, filename) => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+/**
+ * Safely extracts error message from export errors (handling potential Blob bodies).
+ */
+export const extractExportErrorMessage = async (err, defaultMsg = 'Failed to export document. Please try again.') => {
+  if (!err) return defaultMsg;
+
+  if (typeof err.message === 'string' && err.message && !err.message.startsWith('Request failed with')) {
+    return err.message;
+  }
+
+  const blob = err.data instanceof Blob ? err.data : err.response?.data instanceof Blob ? err.response.data : null;
+  if (blob) {
+    try {
+      const text = await blob.text();
+      const parsed = JSON.parse(text);
+      if (parsed.message) return parsed.message;
+    } catch {
+      // not JSON
+    }
+  }
+
+  return err.message || defaultMsg;
+};
+
+

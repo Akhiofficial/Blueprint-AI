@@ -11,6 +11,7 @@
  * or Generation records.
  */
 
+import { ZipArchive } from 'archiver';
 import PDFDocument from 'pdfkit';
 import Document from '../../models/Document.js';
 import Project from '../../models/Project.js';
@@ -54,6 +55,22 @@ export const DOC_TYPE_LABELS = {
   UserStories: 'User Stories',
   APISpec:     'REST API Design',
   DBSchema:    'Database Schema',
+};
+
+export const DOC_TYPE_SEPARATE_FILENAMES = {
+  BRD:         'BRD.pdf',
+  SRS:         'SRS.pdf',
+  UserStories: 'User-Stories.pdf',
+  APISpec:     'REST-API.pdf',
+  DBSchema:    'Database.pdf',
+};
+
+export const DOC_TYPE_SEPARATE_MD_FILENAMES = {
+  BRD:         'BRD.md',
+  SRS:         'SRS.md',
+  UserStories: 'User-Stories.md',
+  APISpec:     'REST-API.md',
+  DBSchema:    'Database.md',
 };
 
 /**
@@ -702,232 +719,150 @@ export const renderAllDocumentsToMarkdown = (docs, projectTitle = 'Project') => 
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Helper to render sections into a PDFKit document stream.
+ * Proportional column width calculator.
+ * Ensures tables fit page width cleanly, giving text columns maximum space.
  */
-const renderSectionsToPDF = (pdfDoc, sections) => {
-  const pageWidth = pdfDoc.page.width - pdfDoc.page.margins.left - pdfDoc.page.margins.right;
+const calculateColumnWidths = (headers, totalWidth) => {
+  const colCount = headers.length;
+  if (colCount <= 1) return [totalWidth];
 
-  sections.forEach(sec => {
-    // Check if we need a new page for section heading
-    if (pdfDoc.y > pdfDoc.page.height - 120) {
-      pdfDoc.addPage();
-    }
-
-    pdfDoc.moveDown(0.8);
-    pdfDoc
-      .fontSize(13)
-      .fillColor('#1E293B')
-      .font('Helvetica-Bold')
-      .text(sec.title, { underline: false });
-
-    pdfDoc
-      .strokeColor('#E2E8F0')
-      .lineWidth(0.75)
-      .moveTo(pdfDoc.page.margins.left, pdfDoc.y + 4)
-      .lineTo(pdfDoc.page.margins.left + pageWidth, pdfDoc.y + 4)
-      .stroke();
-
-    pdfDoc.moveDown(0.6);
-
-    // Paragraphs
-    if (sec.paragraphs && sec.paragraphs.length) {
-      sec.paragraphs.forEach(p => {
-        pdfDoc
-          .fontSize(9.5)
-          .fillColor('#334155')
-          .font('Helvetica')
-          .text(p.replace(/\*\*/g, '').replace(/`/g, ''), { lineGap: 3, width: pageWidth });
-        pdfDoc.moveDown(0.4);
-      });
-    }
-
-    // Bullet items
-    if (sec.items && sec.items.length) {
-      sec.items.forEach(item => {
-        pdfDoc
-          .fontSize(9.5)
-          .fillColor('#334155')
-          .font('Helvetica')
-          .text(`•  ${item}`, { indent: 10, lineGap: 2.5, width: pageWidth });
-      });
-      pdfDoc.moveDown(0.4);
-    }
-
-    // Table rendering
-    if (sec.table && sec.table.headers && sec.table.headers.length) {
-      renderTableToPDF(pdfDoc, sec.table, pageWidth);
-    }
-
-    // Cards (User stories, endpoints, entities)
-    if (sec.cards && sec.cards.length) {
-      sec.cards.forEach(card => {
-        if (pdfDoc.y > pdfDoc.page.height - 100) {
-          pdfDoc.addPage();
-        }
-
-        pdfDoc.moveDown(0.5);
-        pdfDoc
-          .fontSize(10.5)
-          .fillColor('#0F172A')
-          .font('Helvetica-Bold')
-          .text(card.title);
-
-        if (card.badge) {
-          pdfDoc
-            .fontSize(8.5)
-            .fillColor('#2563EB')
-            .font('Helvetica-Bold')
-            .text(`[ ${card.badge} ]`);
-        }
-
-        if (card.subtitle) {
-          pdfDoc
-            .fontSize(9)
-            .fillColor('#64748B')
-            .font('Helvetica-Oblique')
-            .text(card.subtitle, { width: pageWidth });
-        }
-
-        pdfDoc.moveDown(0.3);
-
-        if (card.fields && card.fields.length) {
-          card.fields.forEach(f => {
-            pdfDoc
-              .fontSize(9)
-              .fillColor('#1E293B')
-              .font('Helvetica-Bold')
-              .text(`${f.label}: `, { continued: true })
-              .font('Helvetica')
-              .fillColor('#334155')
-              .text(f.value);
-          });
-          pdfDoc.moveDown(0.3);
-        }
-
-        if (card.paragraphs && card.paragraphs.length) {
-          card.paragraphs.forEach(p => {
-            pdfDoc
-              .fontSize(9)
-              .fillColor('#334155')
-              .font('Helvetica')
-              .text(p, { lineGap: 2, width: pageWidth });
-            pdfDoc.moveDown(0.3);
-          });
-        }
-
-        if (card.table && card.table.headers && card.table.headers.length) {
-          renderTableToPDF(pdfDoc, card.table, pageWidth);
-        }
-
-        if (card.items && card.items.length) {
-          pdfDoc
-            .fontSize(9)
-            .fillColor('#475569')
-            .font('Helvetica-Bold')
-            .text('Acceptance Criteria / Notes:');
-          card.items.forEach(item => {
-            pdfDoc
-              .fontSize(8.5)
-              .fillColor('#334155')
-              .font('Helvetica')
-              .text(`- ${item}`, { indent: 10, lineGap: 2, width: pageWidth });
-          });
-          pdfDoc.moveDown(0.3);
-        }
-
-        if (card.code && card.code.content) {
-          renderCodeBlockToPDF(pdfDoc, card.code.content, pageWidth);
-        }
-
-        pdfDoc.moveDown(0.4);
-      });
-    }
-
-    // Code block
-    if (sec.code && sec.code.content) {
-      renderCodeBlockToPDF(pdfDoc, sec.code.content, pageWidth);
-    }
+  const weights = headers.map(h => {
+    const norm = String(h).trim().toLowerCase();
+    if (['id', 'pk', 'index', 'in', 'method'].includes(norm)) return 1.0;
+    if (['priority', 'required', 'type', 'status', 'impact'].includes(norm)) return 1.2;
+    if (['category', 'role', 'persona', 'field', 'name', 'target', 'constraint'].includes(norm)) return 1.8;
+    if (['title', 'risk', 'mitigation'].includes(norm)) return 2.2;
+    if (['description', 'requirement', 'overview', 'content', 'notes', 'permissions'].includes(norm)) return 4.0;
+    return 2.0;
   });
+
+  const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+  const widths = weights.map(w => Math.floor((w / totalWeight) * totalWidth));
+
+  const sum = widths.reduce((acc, w) => acc + w, 0);
+  const diff = totalWidth - sum;
+  if (diff > 0) {
+    const maxIdx = weights.indexOf(Math.max(...weights));
+    widths[maxIdx] += diff;
+  }
+
+  return widths;
 };
 
 /**
- * Render structured table to PDFKit with header row and clean cell boundaries.
+ * Safe page break helpers to prevent empty / blank pages.
+ */
+const safeAddPage = (pdfDoc) => {
+  const topMargin = pdfDoc.page.margins?.top || 40;
+  // If we are already at the top of a fresh page, do not create another blank page!
+  if (pdfDoc.y > topMargin + 5) {
+    pdfDoc.addPage();
+  }
+};
+
+const checkPageSpace = (pdfDoc, requiredHeight) => {
+  const bottomMargin = pdfDoc.page.margins?.bottom || 45;
+  const topMargin = pdfDoc.page.margins?.top || 40;
+  if (pdfDoc.y + requiredHeight > pdfDoc.page.height - bottomMargin) {
+    if (pdfDoc.y > topMargin + 5) {
+      pdfDoc.addPage();
+    }
+  }
+};
+
+/**
+ * Render structured table to PDFKit with header row, repeatable headers, and cell wrapping.
  */
 const renderTableToPDF = (pdfDoc, table, pageWidth) => {
   const headers = table.headers || [];
   const rows = table.rows || [];
   if (!headers.length) return;
 
-  const colCount = headers.length;
-  const colWidth = pageWidth / colCount;
+  const colWidths = calculateColumnWidths(headers, pageWidth);
   const startX = pdfDoc.page.margins.left;
+  const bottomMargin = pdfDoc.page.margins.bottom;
 
-  if (pdfDoc.y > pdfDoc.page.height - 80) {
-    pdfDoc.addPage();
-  }
+  const drawHeader = () => {
+    pdfDoc.x = startX;
+    const headerHeight = 18;
+    const hY = pdfDoc.y;
+    pdfDoc.save();
+    pdfDoc.rect(startX, hY, pageWidth, headerHeight).fill('#F8FAFC');
+    pdfDoc.strokeColor('#CBD5E1').lineWidth(0.5).rect(startX, hY, pageWidth, headerHeight).stroke();
+    pdfDoc.restore();
 
-  pdfDoc.moveDown(0.3);
+    let currX = startX;
+    headers.forEach((h, i) => {
+      pdfDoc
+        .fontSize(8)
+        .fillColor('#1E293B')
+        .font('Helvetica-Bold')
+        .text(String(h || ''), currX + 4, hY + 4, {
+          width: colWidths[i] - 8,
+          align: 'left',
+          ellipsis: true,
+          lineBreak: false,
+        });
+      currX += colWidths[i];
+    });
 
-  // Table header background
-  const headerY = pdfDoc.y;
-  pdfDoc
-    .rect(startX, headerY, pageWidth, 18)
-    .fill('#F8FAFC');
+    pdfDoc.y = hY + headerHeight;
+    pdfDoc.x = startX;
+  };
 
-  pdfDoc.strokeColor('#CBD5E1').lineWidth(0.5).rect(startX, headerY, pageWidth, 18).stroke();
+  // If table cannot fit at least header and one small row, add page safely
+  checkPageSpace(pdfDoc, 36);
 
-  // Header text
-  headers.forEach((h, i) => {
-    pdfDoc
-      .fontSize(8.5)
-      .fillColor('#1E293B')
-      .font('Helvetica-Bold')
-      .text(h, startX + i * colWidth + 4, headerY + 4, {
-        width: colWidth - 8,
-        align: 'left',
-        ellipsis: true,
-      });
-  });
+  pdfDoc.y += 4;
+  drawHeader();
 
-  pdfDoc.y = headerY + 20;
-
-  // Rows
+  // Render rows
   rows.forEach((row, rowIdx) => {
-    if (pdfDoc.y > pdfDoc.page.height - 40) {
-      pdfDoc.addPage();
+    // Measure row height dynamically using heightOfString
+    pdfDoc.fontSize(8).font('Helvetica');
+    let maxCellHeight = 16;
+    row.forEach((cell, i) => {
+      const text = String(cell || '—');
+      const w = colWidths[i] - 8;
+      const h = pdfDoc.heightOfString(text, { width: w }) + 8;
+      if (h > maxCellHeight) maxCellHeight = h;
+    });
+
+    // Check if row fits on current page
+    if (pdfDoc.y + maxCellHeight > pdfDoc.page.height - bottomMargin) {
+      safeAddPage(pdfDoc);
+      drawHeader();
     }
 
     const rowY = pdfDoc.y;
-    // Calculate row height estimate
-    let maxCellHeight = 16;
-    row.forEach(cell => {
-      const text = String(cell || '—');
-      const lines = Math.ceil(text.length / (colWidth / 6));
-      const cellHeight = Math.max(16, lines * 10 + 6);
-      if (cellHeight > maxCellHeight) maxCellHeight = cellHeight;
-    });
 
+    pdfDoc.save();
     if (rowIdx % 2 === 1) {
       pdfDoc.rect(startX, rowY, pageWidth, maxCellHeight).fill('#F8FAFC');
     }
-
     pdfDoc.strokeColor('#E2E8F0').lineWidth(0.5).rect(startX, rowY, pageWidth, maxCellHeight).stroke();
+    pdfDoc.restore();
 
+    let cellX = startX;
     row.forEach((cell, i) => {
       pdfDoc
         .fontSize(8)
         .fillColor('#334155')
         .font('Helvetica')
-        .text(String(cell || '—'), startX + i * colWidth + 4, rowY + 4, {
-          width: colWidth - 8,
+        .text(String(cell || '—'), cellX + 4, rowY + 4, {
+          width: colWidths[i] - 8,
           align: 'left',
+          lineBreak: false,
         });
+      cellX += colWidths[i];
     });
 
     pdfDoc.y = rowY + maxCellHeight;
+    pdfDoc.x = startX;
   });
 
-  pdfDoc.moveDown(0.5);
+  pdfDoc.x = startX;
+  pdfDoc.y += 6;
 };
 
 /**
@@ -937,19 +872,20 @@ const renderCodeBlockToPDF = (pdfDoc, codeString, pageWidth) => {
   if (!codeString) return;
   const startX = pdfDoc.page.margins.left;
   const lines = codeString.split('\n');
-  const boxHeight = Math.min(250, lines.length * 11 + 12);
+  // Estimate height; cap at 220pt to avoid a code block consuming a full page
+  const boxHeight = Math.min(220, lines.length * 10 + 20);
 
-  if (pdfDoc.y > pdfDoc.page.height - (boxHeight + 30)) {
-    pdfDoc.addPage();
-  }
+  checkPageSpace(pdfDoc, boxHeight + 10);
 
   const boxY = pdfDoc.y;
-  pdfDoc
-    .rect(startX, boxY, pageWidth, boxHeight)
-    .fill('#F1F5F9');
 
+  // Draw background and border FIRST (doesn't move pdfDoc.y)
+  pdfDoc.save();
+  pdfDoc.rect(startX, boxY, pageWidth, boxHeight).fill('#F1F5F9');
   pdfDoc.strokeColor('#CBD5E1').lineWidth(0.5).rect(startX, boxY, pageWidth, boxHeight).stroke();
+  pdfDoc.restore();
 
+  // Draw text at explicit position
   pdfDoc
     .fontSize(7.5)
     .font('Courier')
@@ -958,9 +894,221 @@ const renderCodeBlockToPDF = (pdfDoc, codeString, pageWidth) => {
       width: pageWidth - 16,
       height: boxHeight - 16,
       ellipsis: true,
+      lineBreak: true,
     });
 
+  // Manually advance past the box — do NOT rely on where PDFKit left the cursor
   pdfDoc.y = boxY + boxHeight + 8;
+  pdfDoc.x = startX;
+};
+
+/**
+ * Helper to render sections into a PDFKit document stream.
+ * Uses explicit (x, y) coordinates for every text/draw call to prevent
+ * PDFKit cursor drift from stacking moveDown() with auto-advance.
+ */
+const renderSectionsToPDF = (pdfDoc, sections) => {
+  const startX = pdfDoc.page.margins.left;
+  const pageWidth = pdfDoc.page.width - pdfDoc.page.margins.left - pdfDoc.page.margins.right;
+
+  sections.forEach(sec => {
+    // Guard: if less than 60pt remain, start a new page before the heading
+    checkPageSpace(pdfDoc, 60);
+
+    // ── Section Heading ──────────────────────────────────────────────────────
+    // Add a fixed 10pt gap before each section heading
+    pdfDoc.y += 10;
+    const headingY = pdfDoc.y;
+
+    pdfDoc
+      .fontSize(12)
+      .fillColor('#1E293B')
+      .font('Helvetica-Bold')
+      .text(sec.title, startX, headingY, { width: pageWidth, lineBreak: false });
+
+    // Place divider 4pt below heading text (heading font=12, ~14.4pt line height)
+    const dividerY = headingY + 16;
+    pdfDoc.save();
+    pdfDoc
+      .strokeColor('#E2E8F0')
+      .lineWidth(0.75)
+      .moveTo(startX, dividerY)
+      .lineTo(startX + pageWidth, dividerY)
+      .stroke();
+    pdfDoc.restore();
+
+    // Content starts 8pt below the divider
+    pdfDoc.y = dividerY + 8;
+    pdfDoc.x = startX;
+
+    // ── Paragraphs ───────────────────────────────────────────────────────────
+    if (sec.paragraphs && sec.paragraphs.length) {
+      sec.paragraphs.forEach(p => {
+        checkPageSpace(pdfDoc, 20);
+        const paraY = pdfDoc.y;
+        pdfDoc
+          .fontSize(9)
+          .fillColor('#334155')
+          .font('Helvetica')
+          .text(
+            p.replace(/\*\*/g, '').replace(/`/g, ''),
+            startX,
+            paraY,
+            { lineGap: 2, width: pageWidth }
+          );
+        // After text(), pdfDoc.y is already advanced — just add a small gap
+        pdfDoc.y += 4;
+        pdfDoc.x = startX;
+      });
+    }
+
+    // ── Bullet Items ─────────────────────────────────────────────────────────
+    if (sec.items && sec.items.length) {
+      sec.items.forEach(item => {
+        checkPageSpace(pdfDoc, 14);
+        const itemY = pdfDoc.y;
+        pdfDoc
+          .fontSize(9)
+          .fillColor('#334155')
+          .font('Helvetica')
+          .text(`\u2022  ${String(item)}`, startX + 8, itemY, {
+            lineGap: 1.5,
+            width: pageWidth - 8,
+          });
+        pdfDoc.y += 2;
+        pdfDoc.x = startX;
+      });
+      pdfDoc.y += 4;
+    }
+
+    // ── Table ────────────────────────────────────────────────────────────────
+    if (sec.table && sec.table.headers && sec.table.headers.length) {
+      pdfDoc.x = startX;
+      renderTableToPDF(pdfDoc, sec.table, pageWidth);
+      pdfDoc.x = startX;
+    }
+
+    // ── Cards (User stories, endpoints, entities) ────────────────────────────
+    if (sec.cards && sec.cards.length) {
+      sec.cards.forEach(card => {
+        checkPageSpace(pdfDoc, 50);
+
+        pdfDoc.y += 6;
+        pdfDoc.x = startX;
+
+        // Card title
+        const cardTitleY = pdfDoc.y;
+        pdfDoc
+          .fontSize(10)
+          .fillColor('#0F172A')
+          .font('Helvetica-Bold')
+          .text(String(card.title || ''), startX, cardTitleY, { width: pageWidth });
+        pdfDoc.y += 2;
+        pdfDoc.x = startX;
+
+        if (card.badge) {
+          const badgeY = pdfDoc.y;
+          pdfDoc
+            .fontSize(8)
+            .fillColor('#2563EB')
+            .font('Helvetica-Bold')
+            .text(`[ ${card.badge} ]`, startX, badgeY, { width: pageWidth });
+          pdfDoc.y += 2;
+          pdfDoc.x = startX;
+        }
+
+        if (card.subtitle) {
+          const subtitleY = pdfDoc.y;
+          pdfDoc
+            .fontSize(8.5)
+            .fillColor('#64748B')
+            .font('Helvetica-Oblique')
+            .text(String(card.subtitle), startX, subtitleY, { width: pageWidth });
+          pdfDoc.y += 2;
+          pdfDoc.x = startX;
+        }
+
+        if (card.fields && card.fields.length) {
+          card.fields.forEach(f => {
+            checkPageSpace(pdfDoc, 12);
+            const fieldY = pdfDoc.y;
+            // Render label + value on same line using continued:true
+            pdfDoc
+              .fontSize(8.5)
+              .fillColor('#1E293B')
+              .font('Helvetica-Bold')
+              .text(`${f.label}: `, startX, fieldY, { continued: true, lineBreak: false })
+              .font('Helvetica')
+              .fillColor('#334155')
+              .text(String(f.value || ''), { lineBreak: true, width: pageWidth - 60 });
+            pdfDoc.y += 1;
+            pdfDoc.x = startX;
+          });
+          pdfDoc.y += 3;
+        }
+
+        if (card.paragraphs && card.paragraphs.length) {
+          card.paragraphs.forEach(p => {
+            checkPageSpace(pdfDoc, 14);
+            const pY = pdfDoc.y;
+            pdfDoc
+              .fontSize(8.5)
+              .fillColor('#334155')
+              .font('Helvetica')
+              .text(String(p), startX, pY, { lineGap: 1.5, width: pageWidth });
+            pdfDoc.y += 2;
+            pdfDoc.x = startX;
+          });
+        }
+
+        if (card.table && card.table.headers && card.table.headers.length) {
+          pdfDoc.x = startX;
+          renderTableToPDF(pdfDoc, card.table, pageWidth);
+          pdfDoc.x = startX;
+        }
+
+        if (card.items && card.items.length) {
+          checkPageSpace(pdfDoc, 16);
+          const notesLabelY = pdfDoc.y;
+          pdfDoc
+            .fontSize(8.5)
+            .fillColor('#475569')
+            .font('Helvetica-Bold')
+            .text('Acceptance Criteria / Notes:', startX, notesLabelY, { width: pageWidth });
+          pdfDoc.y += 2;
+          pdfDoc.x = startX;
+          card.items.forEach(item => {
+            checkPageSpace(pdfDoc, 12);
+            const iY = pdfDoc.y;
+            pdfDoc
+              .fontSize(8)
+              .fillColor('#334155')
+              .font('Helvetica')
+              .text(`- ${String(item)}`, startX + 8, iY, { lineGap: 1.5, width: pageWidth - 8 });
+            pdfDoc.y += 1;
+            pdfDoc.x = startX;
+          });
+          pdfDoc.y += 3;
+        }
+
+        if (card.code && card.code.content) {
+          pdfDoc.x = startX;
+          renderCodeBlockToPDF(pdfDoc, card.code.content, pageWidth);
+          pdfDoc.x = startX;
+        }
+
+        pdfDoc.x = startX;
+      });
+      pdfDoc.y += 4;
+    }
+
+    // ── Section-level code block ─────────────────────────────────────────────
+    if (sec.code && sec.code.content) {
+      pdfDoc.x = startX;
+      renderCodeBlockToPDF(pdfDoc, sec.code.content, pageWidth);
+      pdfDoc.x = startX;
+    }
+  });
 };
 
 /**
@@ -976,11 +1124,12 @@ export const buildSingleDocumentPDF = (doc, stream) => {
   pdfDoc.pipe(stream);
 
   // Document Header Banner
+  const startX = pdfDoc.page.margins.left;
   pdfDoc
     .fontSize(18)
     .fillColor('#1E3A8A')
     .font('Helvetica-Bold')
-    .text(doc.title);
+    .text(doc.title, startX, pdfDoc.y);
 
   pdfDoc.moveDown(0.2);
 
@@ -988,16 +1137,20 @@ export const buildSingleDocumentPDF = (doc, stream) => {
     .fontSize(9)
     .fillColor('#64748B')
     .font('Helvetica')
-    .text(`Project: ${doc.projectTitle}   |   Type: ${doc.typeLabel}   |   Version: V${doc.version}   |   Updated: ${new Date(doc.updatedAt).toLocaleDateString()}`);
+    .text(`Project: ${doc.projectTitle}   |   Type: ${doc.typeLabel}   |   Version: V${doc.version}   |   Updated: ${new Date(doc.updatedAt).toLocaleDateString()}`, startX, pdfDoc.y);
 
-  pdfDoc.moveDown(0.5);
+  pdfDoc.moveDown(0.4);
+  pdfDoc.x = startX;
 
   renderSectionsToPDF(pdfDoc, doc.sections);
 
-  // Add Page Numbers to all pages
+  // Add Page Numbers to all pages.
+  // CRITICAL: Temporarily set margins.bottom = 0 so PDFKit's line checker never triggers accidental addPage() during footer rendering!
   const range = pdfDoc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     pdfDoc.switchToPage(i);
+    const oldBottom = pdfDoc.page.margins.bottom;
+    pdfDoc.page.margins.bottom = 0;
     pdfDoc
       .fontSize(8)
       .fillColor('#94A3B8')
@@ -1006,8 +1159,13 @@ export const buildSingleDocumentPDF = (doc, stream) => {
         `BlueprintAI — ${doc.projectTitle}  |  ${doc.typeLabel}  |  Page ${i + 1} of ${range.count}`,
         40,
         pdfDoc.page.height - 30,
-        { align: 'center', width: pdfDoc.page.width - 80 }
+        {
+          align: 'center',
+          width: pdfDoc.page.width - 80,
+          lineBreak: false,
+        }
       );
+    pdfDoc.page.margins.bottom = oldBottom;
   }
 
   pdfDoc.end();
@@ -1015,7 +1173,69 @@ export const buildSingleDocumentPDF = (doc, stream) => {
 };
 
 /**
- * Generate a combined PDF stream for All Documents.
+ * Generate a single document PDF into an in-memory Buffer for archiving.
+ */
+export const buildDocumentPDFBuffer = (doc) => {
+  return new Promise((resolve, reject) => {
+    const pdfDoc = new PDFDocument({
+      bufferPages: true,
+      size: 'A4',
+      margins: { top: 40, bottom: 45, left: 40, right: 40 },
+    });
+
+    const chunks = [];
+    pdfDoc.on('data', chunk => chunks.push(chunk));
+    pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+    pdfDoc.on('error', err => reject(err));
+
+    const startX = pdfDoc.page.margins.left;
+    pdfDoc
+      .fontSize(18)
+      .fillColor('#1E3A8A')
+      .font('Helvetica-Bold')
+      .text(doc.title, startX, pdfDoc.y);
+
+    pdfDoc.moveDown(0.2);
+
+    pdfDoc
+      .fontSize(9)
+      .fillColor('#64748B')
+      .font('Helvetica')
+      .text(`Project: ${doc.projectTitle}   |   Type: ${doc.typeLabel}   |   Version: V${doc.version}   |   Updated: ${new Date(doc.updatedAt).toLocaleDateString()}`, startX, pdfDoc.y);
+
+    pdfDoc.moveDown(0.4);
+    pdfDoc.x = startX;
+
+    renderSectionsToPDF(pdfDoc, doc.sections);
+
+    const range = pdfDoc.bufferedPageRange();
+    for (let i = 0; i < range.count; i++) {
+      pdfDoc.switchToPage(i);
+      const oldBottom = pdfDoc.page.margins.bottom;
+      pdfDoc.page.margins.bottom = 0;
+      pdfDoc
+        .fontSize(8)
+        .fillColor('#94A3B8')
+        .font('Helvetica')
+        .text(
+          `BlueprintAI — ${doc.projectTitle}  |  ${doc.typeLabel}  |  Page ${i + 1} of ${range.count}`,
+          40,
+          pdfDoc.page.height - 30,
+          {
+            align: 'center',
+            width: pdfDoc.page.width - 80,
+            lineBreak: false,
+          }
+        );
+      pdfDoc.page.margins.bottom = oldBottom;
+    }
+
+    pdfDoc.end();
+  });
+};
+
+/**
+ * Generate a combined PDF stream for All / Selected Documents.
  */
 export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
   const pdfDoc = new PDFDocument({
@@ -1026,12 +1246,14 @@ export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
 
   pdfDoc.pipe(stream);
 
+  const startX = pdfDoc.page.margins.left;
+
   // Cover / Header Page
   pdfDoc
     .fontSize(22)
     .fillColor('#1E3A8A')
     .font('Helvetica-Bold')
-    .text('Blueprint Specification Dossier', { align: 'center' });
+    .text('Blueprint Specification Dossier', startX, 80, { align: 'center', width: pdfDoc.page.width - 80 });
 
   pdfDoc.moveDown(0.3);
 
@@ -1039,7 +1261,7 @@ export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
     .fontSize(14)
     .fillColor('#334155')
     .font('Helvetica-Bold')
-    .text(projectTitle, { align: 'center' });
+    .text(projectTitle, startX, pdfDoc.y, { align: 'center', width: pdfDoc.page.width - 80 });
 
   pdfDoc.moveDown(0.3);
 
@@ -1047,46 +1269,47 @@ export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
     .fontSize(9)
     .fillColor('#64748B')
     .font('Helvetica')
-    .text(`Generated by BlueprintAI on ${new Date().toLocaleDateString()}`, { align: 'center' });
+    .text(`Generated by BlueprintAI on ${new Date().toLocaleDateString()}`, startX, pdfDoc.y, { align: 'center', width: pdfDoc.page.width - 80 });
 
   pdfDoc.moveDown(1.5);
 
   // Table of contents box
   const pageWidth = pdfDoc.page.width - pdfDoc.page.margins.left - pdfDoc.page.margins.right;
   const tocY = pdfDoc.y;
-  pdfDoc.rect(pdfDoc.page.margins.left, tocY, pageWidth, docs.length * 20 + 35).fill('#F8FAFC');
-  pdfDoc.strokeColor('#CBD5E1').lineWidth(0.75).rect(pdfDoc.page.margins.left, tocY, pageWidth, docs.length * 20 + 35).stroke();
+  const tocHeight = docs.length * 20 + 35;
+  pdfDoc.rect(startX, tocY, pageWidth, tocHeight).fill('#F8FAFC');
+  pdfDoc.strokeColor('#CBD5E1').lineWidth(0.75).rect(startX, tocY, pageWidth, tocHeight).stroke();
 
   pdfDoc
     .fontSize(11)
     .fillColor('#1E293B')
     .font('Helvetica-Bold')
-    .text('Documents Included', pdfDoc.page.margins.left + 12, tocY + 10);
-
-  pdfDoc.moveDown(0.5);
+    .text('Documents Included', startX + 12, tocY + 10, { lineBreak: false });
 
   docs.forEach((d, idx) => {
     pdfDoc
       .fontSize(9.5)
       .fillColor('#2563EB')
       .font('Helvetica-Bold')
-      .text(`${idx + 1}. `, pdfDoc.page.margins.left + 16, tocY + 30 + idx * 20, { continued: true })
+      .text(`${idx + 1}. `, startX + 16, tocY + 30 + idx * 20, { continued: true, lineBreak: false })
       .fillColor('#1E293B')
       .font('Helvetica')
-      .text(`${d.typeLabel} — ${d.title} (V${d.version})`);
+      .text(`${d.typeLabel} — ${d.title} (V${d.version})`, { lineBreak: false });
   });
 
-  pdfDoc.y = tocY + docs.length * 20 + 50;
+  pdfDoc.y = tocY + tocHeight + 30;
+  pdfDoc.x = startX;
 
   // Render each document starting on its own page
   docs.forEach(doc => {
     pdfDoc.addPage();
+    pdfDoc.x = startX;
 
     pdfDoc
       .fontSize(16)
       .fillColor('#1E3A8A')
       .font('Helvetica-Bold')
-      .text(doc.title);
+      .text(doc.title, startX, pdfDoc.y);
 
     pdfDoc.moveDown(0.2);
 
@@ -1094,17 +1317,20 @@ export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
       .fontSize(8.5)
       .fillColor('#64748B')
       .font('Helvetica')
-      .text(`Type: ${doc.typeLabel}   |   Version: V${doc.version}   |   Updated: ${new Date(doc.updatedAt).toLocaleDateString()}`);
+      .text(`Type: ${doc.typeLabel}   |   Version: V${doc.version}   |   Updated: ${new Date(doc.updatedAt).toLocaleDateString()}`, startX, pdfDoc.y);
 
-    pdfDoc.moveDown(0.5);
+    pdfDoc.moveDown(0.4);
+    pdfDoc.x = startX;
 
     renderSectionsToPDF(pdfDoc, doc.sections);
   });
 
-  // Add Page Numbers
+  // Add Page Numbers with margins.bottom = 0 protection
   const range = pdfDoc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     pdfDoc.switchToPage(i);
+    const oldBottom = pdfDoc.page.margins.bottom;
+    pdfDoc.page.margins.bottom = 0;
     pdfDoc
       .fontSize(8)
       .fillColor('#94A3B8')
@@ -1113,8 +1339,13 @@ export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
         `BlueprintAI — ${projectTitle}  |  Specification Dossier  |  Page ${i + 1} of ${range.count}`,
         40,
         pdfDoc.page.height - 30,
-        { align: 'center', width: pdfDoc.page.width - 80 }
+        {
+          align: 'center',
+          width: pdfDoc.page.width - 80,
+          lineBreak: false,
+        }
       );
+    pdfDoc.page.margins.bottom = oldBottom;
   }
 
   pdfDoc.end();
@@ -1133,9 +1364,10 @@ export const buildAllDocumentsPDF = (docs, projectTitle, stream) => {
  * @param {string} params.ownerId    - Authenticated user ID
  * @param {string} params.docType    - Canonical or alias document type
  * @param {string} params.format     - 'markdown' | 'pdf'
+ * @param {string} [params.mode]     - 'combined' | 'separate'
  * @param {object} res               - Express response object
  */
-export const exportSingleDocument = async ({ projectId, ownerId, docType, format, res }) => {
+export const exportSingleDocument = async ({ projectId, ownerId, docType, format, mode = 'combined', res }) => {
   const project = await Project.findOne({ _id: projectId, owner: ownerId });
   if (!project) {
     res.status(404);
@@ -1160,14 +1392,18 @@ export const exportSingleDocument = async ({ projectId, ownerId, docType, format
 
   if (format === 'markdown') {
     const markdown = renderDocumentToMarkdown(normalized);
-    const filename = `BlueprintAI_${safeProjectName}_${safeDocType}.md`;
+    const filename = mode === 'separate'
+      ? (DOC_TYPE_SEPARATE_MD_FILENAMES[canonicalType] || `BlueprintAI_${safeProjectName}_${safeDocType}.md`)
+      : `BlueprintAI_${safeProjectName}_${safeDocType}.md`;
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(markdown);
   }
 
   if (format === 'pdf') {
-    const filename = `BlueprintAI_${safeProjectName}_${safeDocType}.pdf`;
+    const filename = mode === 'separate'
+      ? (DOC_TYPE_SEPARATE_FILENAMES[canonicalType] || `BlueprintAI_${safeProjectName}_${safeDocType}.pdf`)
+      : `BlueprintAI_${safeProjectName}_${safeDocType}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     buildSingleDocumentPDF(normalized, res);
@@ -1185,25 +1421,39 @@ export const exportSingleDocument = async ({ projectId, ownerId, docType, format
  * @param {string} params.projectId  - MongoDB project ObjectId
  * @param {string} params.ownerId    - Authenticated user ID
  * @param {string} params.format     - 'markdown' | 'pdf'
+ * @param {string[]} [params.docTypes] - Subset of document types to export
+ * @param {string} [params.mode]     - 'combined' | 'separate'
  * @param {object} res               - Express response object
  */
-export const exportAllDocuments = async ({ projectId, ownerId, format, res }) => {
+export const exportAllDocuments = async ({ projectId, ownerId, format, docTypes, mode = 'combined', res }) => {
   const project = await Project.findOne({ _id: projectId, owner: ownerId });
   if (!project) {
     res.status(404);
     throw new Error('Project not found or unauthorized.');
   }
 
+  // Filter requested document types if provided
+  let targetTypes = SUPPORTED_DOC_TYPES;
+  if (docTypes && Array.isArray(docTypes) && docTypes.length > 0) {
+    const resolved = docTypes
+      .map(t => DOC_TYPE_ALIASES[String(t).trim()] || String(t).trim())
+      .filter(t => SUPPORTED_DOC_TYPES.includes(t));
+
+    if (resolved.length > 0) {
+      targetTypes = resolved;
+    }
+  }
+
   const documents = await Document.find({
     project: projectId,
-    type: { $in: SUPPORTED_DOC_TYPES },
+    type: { $in: targetTypes },
   });
 
   const readyDocs = documents.filter(d => d.status === 'ready' && d.content);
 
   if (!readyDocs.length) {
     res.status(404);
-    throw new Error('No ready documents found to export for this project.');
+    throw new Error('No ready documents found matching the selection to export for this project.');
   }
 
   // Sort in canonical ordering: BRD → SRS → UserStories → APISpec → DBSchema
@@ -1214,16 +1464,68 @@ export const exportAllDocuments = async ({ projectId, ownerId, format, res }) =>
   const normalizedDocs = sortedDocs.map(d => normalizeDocumentForExport(d, project.title));
   const safeProjectName = sanitizeFilename(project.title);
 
+  // ── SEPARATE MODE: Individual documents packaged or downloaded directly ──
+  if (mode === 'separate') {
+    if (normalizedDocs.length === 1) {
+      const singleDoc = normalizedDocs[0];
+      if (format === 'pdf') {
+        const filename = DOC_TYPE_SEPARATE_FILENAMES[singleDoc.type] || `${sanitizeFilename(singleDoc.typeLabel)}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        buildSingleDocumentPDF(singleDoc, res);
+        return;
+      }
+      if (format === 'markdown') {
+        const markdown = renderDocumentToMarkdown(singleDoc);
+        const filename = DOC_TYPE_SEPARATE_MD_FILENAMES[singleDoc.type] || `${sanitizeFilename(singleDoc.typeLabel)}.md`;
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.status(200).send(markdown);
+      }
+    }
+
+    // Multiple documents in separate mode -> Package into ZIP
+    const zip = new ZipArchive({ zlib: { level: 9 } });
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename="BlueprintAI_Export.zip"');
+    zip.pipe(res);
+
+    if (format === 'pdf') {
+      for (const doc of normalizedDocs) {
+        const pdfBuffer = await buildDocumentPDFBuffer(doc);
+        const entryName = DOC_TYPE_SEPARATE_FILENAMES[doc.type] || `${sanitizeFilename(doc.typeLabel)}.pdf`;
+        zip.append(pdfBuffer, { name: entryName });
+      }
+      await zip.finalize();
+      return;
+    }
+
+    if (format === 'markdown') {
+      for (const doc of normalizedDocs) {
+        const markdown = renderDocumentToMarkdown(doc);
+        const entryName = DOC_TYPE_SEPARATE_MD_FILENAMES[doc.type] || `${sanitizeFilename(doc.typeLabel)}.md`;
+        zip.append(markdown, { name: entryName });
+      }
+      await zip.finalize();
+      return;
+    }
+  }
+
+  // ── COMBINED MODE: Single merged document or dossier ──
+  const isFullSet = normalizedDocs.length === SUPPORTED_DOC_TYPES.length;
+  const isSingle = normalizedDocs.length === 1;
+  const docDescriptor = isFullSet ? 'All_Documents' : (isSingle ? sanitizeFilename(normalizedDocs[0].typeLabel) : 'Blueprint');
+
   if (format === 'markdown') {
     const markdown = renderAllDocumentsToMarkdown(normalizedDocs, project.title);
-    const filename = `BlueprintAI_${safeProjectName}_All_Documents.md`;
+    const filename = `BlueprintAI_${safeProjectName}_${docDescriptor}.md`;
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(markdown);
   }
 
   if (format === 'pdf') {
-    const filename = `BlueprintAI_${safeProjectName}_All_Documents.pdf`;
+    const filename = `BlueprintAI_${safeProjectName}_${docDescriptor}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     buildAllDocumentsPDF(normalizedDocs, project.title, res);

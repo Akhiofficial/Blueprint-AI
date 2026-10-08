@@ -26,14 +26,28 @@ const api = axios.create({
 // Response interceptor: handle 401 globally and normalize errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+
+    let serverMessage = null;
+    // When responseType is 'blob', Axios provides error body as a Blob
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const parsed = JSON.parse(text);
+        serverMessage = parsed.message || parsed.error;
+      } catch {
+        // Blob wasn't JSON
+      }
+    } else if (error.response?.data?.message) {
+      serverMessage = error.response.data.message;
     }
     
     // Normalize error for the UI
     const normalizedError = {
-      message: error.response?.data?.message || error.message || 'An unexpected network error occurred.',
+      message: serverMessage || error.response?.data?.message || error.message || 'An unexpected network error occurred.',
       status: error.response?.status || 500,
       code: error.code || 'UNKNOWN_ERROR',
       isNormalized: true

@@ -279,6 +279,8 @@ const WorkspacePage = () => {
         activeDocId={activeDocId}
         saveState={saveState}
         onSave={() => setTriggerSave(prev => prev + 1)}
+        projectId={projectId}
+        projectName={projectName}
       />
     </div>
   );
