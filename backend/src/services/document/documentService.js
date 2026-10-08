@@ -137,20 +137,99 @@ export const getProjectDocuments = async (projectId) => {
     .sort({ type: 1 });
 };
 
+// ── Helper: deep equality comparison for structured documents ───────────────
+const deepEqual = (obj1, obj2) => {
+  if (obj1 === obj2) return true;
+
+  if (obj1 === null || obj1 === undefined || obj2 === null || obj2 === undefined) {
+    return obj1 === obj2;
+  }
+
+  if (typeof obj1 !== typeof obj2) return false;
+
+  if (typeof obj1 !== 'object') return obj1 === obj2;
+
+  if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
+
+  if (Array.isArray(obj1)) {
+    if (obj1.length !== obj2.length) return false;
+    for (let i = 0; i < obj1.length; i++) {
+      if (!deepEqual(obj1[i], obj2[i])) return false;
+    }
+    return true;
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!Object.prototype.hasOwnProperty.call(obj2, key)) return false;
+    if (!deepEqual(obj1[key], obj2[key])) return false;
+  }
+
+  return true;
+};
+
+/**
+ * Compares persisted document content with incoming save content.
+ * Parses JSON strings when necessary and performs a structural deep comparison.
+ */
+export const areContentsEqual = (persistedContent, incomingContent) => {
+  if (persistedContent === incomingContent) return true;
+  if (!persistedContent && !incomingContent) return true;
+  if (!persistedContent || !incomingContent) return false;
+
+  if (typeof persistedContent === 'string' && typeof incomingContent === 'string' && persistedContent.trim() === incomingContent.trim()) {
+    return true;
+  }
+
+  let parsedA = persistedContent;
+  let parsedB = incomingContent;
+
+  if (typeof persistedContent === 'string') {
+    try {
+      parsedA = JSON.parse(persistedContent);
+    } catch {
+      parsedA = persistedContent;
+    }
+  }
+
+  if (typeof incomingContent === 'string') {
+    try {
+      parsedB = JSON.parse(incomingContent);
+    } catch {
+      parsedB = incomingContent;
+    }
+  }
+
+  return deepEqual(parsedA, parsedB);
+};
+
 /**
  * Save manually edited document content and create a new version snapshot.
+ * If the incoming content is identical to the current persisted content,
+ * no new version is created and the response is idempotent.
  *
  * @param {object} params
  * @param {string} params.projectId  - MongoDB project ObjectId (string)
  * @param {string} params.docType    - Document.type enum (e.g. 'BRD')
  * @param {object} params.content    - The updated structured content object
  * @param {string} params.userId     - Authenticated user ObjectId (string)
- * @returns {Promise<{ document: Document, versionNumber: number }>}
+ * @returns {Promise<{ document: Document, versionNumber: number, isUnchanged: boolean }>}
  */
 export const saveDocumentContent = async ({ projectId, docType, content, userId }) => {
   const doc = await Document.findOne({ project: projectId, type: docType });
   if (!doc) {
     throw new Error(`Document not found: project=${projectId} type=${docType}`);
+  }
+
+  // Idempotency check: if content is unchanged, avoid creating duplicate version
+  const isUnchanged = areContentsEqual(doc.content, content);
+  if (isUnchanged) {
+    console.log(`[DocumentService] UNCHANGED — docId=${doc._id}, type=${docType}, version=${doc.currentVersion}`);
+    return { document: doc, versionNumber: doc.currentVersion, isUnchanged: true };
   }
 
   const contentString = typeof content === 'string' ? content : JSON.stringify(content);
@@ -170,7 +249,7 @@ export const saveDocumentContent = async ({ projectId, docType, content, userId 
   });
 
   console.log(`[DocumentService] SAVED — docId=${doc._id}, type=${docType}, version=${nextVersion}`);
-  return { document: doc, versionNumber: nextVersion };
+  return { document: doc, versionNumber: nextVersion, isUnchanged: false };
 };
 
 /**

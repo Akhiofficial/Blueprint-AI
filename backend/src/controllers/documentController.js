@@ -118,7 +118,7 @@ export const saveDocument = asyncHandler(async (req, res) => {
     throw new Error('Project not found or unauthorized');
   }
 
-  const { document: doc, versionNumber } = await documentService.saveDocumentContent({
+  const { document: doc, versionNumber, isUnchanged } = await documentService.saveDocumentContent({
     projectId,
     docType,
     content,
@@ -127,7 +127,9 @@ export const saveDocument = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: `Document saved as version ${versionNumber}.`,
+    message: isUnchanged
+      ? `Document content unchanged (current version ${versionNumber}).`
+      : `Document saved as version ${versionNumber}.`,
     data: {
       _id:            doc._id,
       type:           doc.type,
@@ -135,6 +137,7 @@ export const saveDocument = asyncHandler(async (req, res) => {
       status:         doc.status,
       currentVersion: doc.currentVersion,
       updatedAt:      doc.updatedAt,
+      isUnchanged:    !!isUnchanged,
     },
   });
 });

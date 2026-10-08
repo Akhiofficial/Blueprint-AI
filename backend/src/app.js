@@ -3,7 +3,6 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
-import { authRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
@@ -32,9 +31,6 @@ app.use(express.urlencoded({ extended: false }));
 
 // ── Cookie parsing (reads req.cookies)
 app.use(cookieParser());
-
-// ── Rate limiter applied ONLY to auth routes
-// app.use('/api/auth', authRateLimiter);
 
 // ── API routers
 app.use('/api/auth', authRoutes);
