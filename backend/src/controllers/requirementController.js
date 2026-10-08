@@ -142,6 +142,8 @@ const uploadRequirementDoc = asyncHandler(async (req, res) => {
       knowledgeDocId: knowledgeDoc._id,
       filename: knowledgeDoc.name,
       fileType: knowledgeDoc.fileType,
+      status: knowledgeDoc.status,
+      chunkCount: knowledgeDoc.chunkCount,
       extractedText,
     },
   });

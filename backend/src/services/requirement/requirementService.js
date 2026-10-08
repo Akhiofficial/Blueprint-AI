@@ -2,6 +2,7 @@ import Requirement from '../../models/Requirement.js';
 import Project from '../../models/Project.js';
 import KnowledgeDocument from '../../models/KnowledgeDocument.js';
 import { extractText } from './extractTextService.js';
+import { indexDocument } from '../../engine/rag/ragService.js';
 
 /**
  * Creates a new requirement.
@@ -111,18 +112,26 @@ export const uploadRequirementDocument = async (projectId, ownerId, fileInfo) =>
   // Step 2 — extract text (throws descriptive errors on failure / empty doc)
   const extractedText = await extractText(fileInfo.buffer, fileInfo.mimetype);
 
-  // Step 3 — persist source document metadata
-  // KnowledgeDocument is the existing model for uploaded source files.
-  // We set chunkCount=0 and status='indexed' because chunking/embeddings
-  // are out of scope for this phase.
-  const knowledgeDoc = await KnowledgeDocument.create({
+  // Step 3 — persist source document metadata with 'processing' status
+  let knowledgeDoc = await KnowledgeDocument.create({
     project: projectId,
     name: fileInfo.originalname,
     fileType: fileInfo.mimetype,
     source: 'upload',
-    status: 'indexed',
+    status: 'processing',
     chunkCount: 0,
   });
+
+  // Step 4 — index the document into vector store
+  try {
+    const indexResult = await indexDocument(projectId, knowledgeDoc._id, extractedText);
+    const updatedDoc = await KnowledgeDocument.findById(knowledgeDoc._id);
+    if (updatedDoc) knowledgeDoc = updatedDoc;
+  } catch (indexErr) {
+    console.error(`[RequirementService] Indexing failed for document ${knowledgeDoc._id}:`, indexErr.message);
+    const updatedDoc = await KnowledgeDocument.findById(knowledgeDoc._id);
+    if (updatedDoc) knowledgeDoc = updatedDoc;
+  }
 
   return { knowledgeDoc, extractedText };
 };

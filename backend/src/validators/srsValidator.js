@@ -9,8 +9,12 @@
 import { z } from 'zod';
 
 const stringOrArray = z.union([
-  z.array(z.string()),
+  z.array(z.union([
+    z.string(),
+    z.record(z.any()).transform((o) => o.criteria || o.title || o.description || o.name || JSON.stringify(o))
+  ])),
   z.string().transform((val) => [val]),
+  z.record(z.any()).transform((o) => [o.criteria || o.description || JSON.stringify(o)])
 ]).default([]);
 
 const stringOrObject = z.union([

@@ -25,7 +25,15 @@ const getIndex = () => {
 
 export const upsertVectors = async (vectors, namespace = 'default') => {
   const index = getIndex();
-  await index.namespace(namespace).upsert(vectors);
+  const records = Array.isArray(vectors) ? vectors : (vectors?.records || []);
+  if (!records.length) return;
+  await index.namespace(namespace).upsert({ records });
+};
+
+export const deleteVectors = async (vectorIds, namespace = 'default') => {
+  if (!vectorIds || !vectorIds.length) return;
+  const index = getIndex();
+  await index.namespace(namespace).deleteMany({ ids: vectorIds });
 };
 
 export const queryVectors = async (vector, topK = 5, namespace = 'default', filter = {}) => {
