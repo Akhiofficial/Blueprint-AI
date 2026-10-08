@@ -103,12 +103,17 @@ const DocumentViewer = ({
     }
   }, [refreshKey, loadDocument]);
 
-  // ── Sync external updates (e.g. from ChatPanel) ──
+  // ── Sync external updates (e.g. from ChatPanel AI refinement) ──
   useEffect(() => {
-    if (externalDocUpdate && document && externalDocUpdate.type === document.type) {
+    if (externalDocUpdate && externalDocUpdate.type === activeDocId) {
       setDocument(externalDocUpdate);
+      setEditChanges({});
+      editChangesRef.current = {};
+      isDirtyRef.current = true;
+      onSaveStateChange?.('unsaved');
+      onDocumentLoaded?.(externalDocUpdate);
     }
-  }, [externalDocUpdate, document]);
+  }, [externalDocUpdate, activeDocId, onSaveStateChange, onDocumentLoaded]);
 
   // ── Editing handlers ──
   const handleEdit = () => {

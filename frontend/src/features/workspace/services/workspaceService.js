@@ -652,27 +652,38 @@ export const normalizeVersionContent = (docType, content, baseDoc) => {
 };
 
 /**
- * Fetch chat message history for a document (chat panel placeholder).
+ * Fetch initial chat message for a document (session-local welcome message).
+ * No backend call — chat history is session-local only.
+ * Resets when the user switches documents (called with new activeDocId).
  */
-export const fetchDocumentChat = async (documentId) => {
+export const fetchDocumentChat = async (_projectId, _docType) => {
   return [
     {
       id: 'welcome',
       role: 'assistant',
-      content: 'I can help you review, refine, or add details to this document. What would you like to adjust?',
+      content: 'I can help you refine this document. Describe what you\'d like to change and I\'ll update the local draft. You\'ll still need to Save manually.',
     },
   ];
 };
 
 /**
- * Refine a document with AI prompt instruction (chat panel placeholder).
+ * Refine a document with an AI instruction.
+ * Calls the backend refinement API which proposes changes WITHOUT persisting.
+ * The frontend applies the result to the LOCAL DRAFT only.
+ * The user must explicitly Save to persist.
+ *
+ * @param {string} projectId    - MongoDB project ID
+ * @param {string} docType      - 'BRD' | 'SRS' | 'UserStories' | 'APISpec' | 'DBSchema'
+ * @param {string} instruction  - User\'s natural-language instruction
+ * @returns {Promise<{ message: string, updatedContent: object }>}
  */
-export const refineDocument = async (projectId, docType, instruction, currentDoc) => {
-  await new Promise(r => setTimeout(r, 1200));
-  return {
-    ...currentDoc,
-    updatedAt: new Date().toISOString(),
-  };
+export const refineDocument = async (projectId, docType, instruction) => {
+  const response = await api.post(
+    `/api/projects/${projectId}/documents/${docType}/refine`,
+    { instruction }
+  );
+  const { message, updatedContent } = response.data;
+  return { message, updatedContent };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

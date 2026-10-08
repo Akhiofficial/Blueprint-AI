@@ -73,6 +73,7 @@ const WorkspacePage = () => {
   });
   const [saveState, setSaveState] = useState(null); // 'saved'|'saving'|'unsaved'|null
   const [activeDoc, setActiveDoc] = useState(null);
+  const [externalDocUpdate, setExternalDocUpdate] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [activeRightPanel, setActiveRightPanel] = useState('chat'); // 'chat' | 'history' | null
@@ -132,6 +133,7 @@ const WorkspacePage = () => {
     }
 
     setActiveDocId(docId);
+    setExternalDocUpdate(null);
     setSearchParams({ doc: docId }, { replace: true });
     setSaveState(null);
     setPreviewVersion(null);
@@ -150,6 +152,7 @@ const WorkspacePage = () => {
     const target = pendingDocId;
     setUnsavedDialogOpen(false);
     setPendingDocId(null);
+    setExternalDocUpdate(null);
     setActiveDocId(target);
     setSearchParams({ doc: target }, { replace: true });
     setSaveState(null);
@@ -188,6 +191,7 @@ const WorkspacePage = () => {
   // ── Handle save propagation ──
   const handleDocumentSaved = useCallback((updatedDoc) => {
     setActiveDoc(updatedDoc);
+    setExternalDocUpdate(null);
     setDocStatuses(prev => ({
       ...prev,
       [activeDocId]: {
@@ -209,6 +213,13 @@ const WorkspacePage = () => {
       setPreviewVersion(null);
     }
   }, [activeDocId, pendingDocId, setSearchParams]);
+
+  // ── Handle AI Document Refinement (Draft application only — no auto-save) ──
+  const handleDocumentRefined = useCallback((refinedDoc) => {
+    setExternalDocUpdate(refinedDoc);
+    setActiveDoc(refinedDoc);
+    setSaveState('unsaved');
+  }, []);
 
   const projectName = projectLoading ? '…' : currentProject?.title ?? 'Project';
   const activeDocMeta = BLUEPRINT_DOCS.find(d => d.id === activeDocId);
@@ -287,7 +298,7 @@ const WorkspacePage = () => {
               onSaveError={handleSaveError}
               onSaveStateChange={setSaveState}
               onDocumentGenerated={loadStatuses}
-              externalDocUpdate={activeDoc}
+              externalDocUpdate={externalDocUpdate}
               previewVersion={previewVersion}
               onClearPreview={() => setPreviewVersion(null)}
               triggerSave={triggerSave}
@@ -313,11 +324,8 @@ const WorkspacePage = () => {
               width={rightPanelWidth}
               projectId={projectId}
               activeDocId={activeDocId}
-              onDocumentRefined={(updatedDoc) => {
-                setActiveDoc(updatedDoc);
-                setSaveState('saved');
-                setTimeout(() => setSaveState(null), 3000);
-              }}
+              onDocumentRefined={handleDocumentRefined}
+              onApplyRefinement={handleDocumentRefined}
             />
           )}
 

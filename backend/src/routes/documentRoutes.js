@@ -27,6 +27,7 @@ import {
   getVersionContent,
   restoreVersion,
 } from '../controllers/documentController.js';
+import { refineDocument } from '../controllers/refinementController.js';
 
 const router = express.Router({ mergeParams: true }); // Access :projectId from parent router
 
@@ -47,6 +48,10 @@ router.route('/:docType/versions/:versionNumber').get(getVersionContent);
 
 // Restore document to a specific version snapshot
 router.route('/:docType/restore/:versionNumber').put(restoreVersion).post(restoreVersion);
+
+// AI Refinement — propose a document change (does NOT persist)
+// Frontend applies to local draft; user must Save explicitly.
+router.route('/:docType/refine').post(refineDocument);
 
 export default router;
 

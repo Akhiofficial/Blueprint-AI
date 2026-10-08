@@ -167,6 +167,7 @@ const ProseDocumentView = ({ document, isEditing, onFieldChange, regenSectionId,
             {isEditing ? (
               <textarea
                 id={`ws-edit-${section.id}`}
+                key={`edit-${section.id}-${section.content || (section.items ? section.items.join('|') : '') || (section.table ? section.table.rows?.length : '')}`}
                 className="w-full rounded-lg px-4 py-3 text-sm leading-relaxed transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.03)',

@@ -3,52 +3,99 @@
  *
  * Right-side AI Chat panel in the Blueprint Workspace.
  * Allows users to converse with the AI to refine and update the active document.
- * 
- * Replaces the old ContextPanel.
+ *
+ * Refinement flow:
+ *   1. User types instruction → sends to backend /refine endpoint
+ *   2. Backend returns { message, updatedContent } — NO persistence
+ *   3. ChatPanel calls onApplyRefinement(updatedContent) → DocumentViewer local draft
+ *   4. User reviews the change in the document editor
+ *   5. User explicitly saves via existing Save button
+ *
+ * Chat history is session-local only (resets on doc switch).
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { fetchDocumentChat, refineDocument } from '../services/workspaceService';
+import { fetchDocumentChat, refineDocument, normalizeDocumentContent, BLUEPRINT_DOCS } from '../services/workspaceService';
 
 const ChatMessage = ({ msg }) => {
   const isUser = msg.role === 'user';
-  
+  const isError = msg.role === 'error';
+
+  let bgStyle, borderStyle, textColor;
+  if (isUser) {
+    bgStyle = 'rgba(59,130,246,0.15)';
+    borderStyle = '1px solid rgba(59,130,246,0.3)';
+    textColor = '#E0F2FE';
+  } else if (isError) {
+    bgStyle = 'rgba(239,68,68,0.08)';
+    borderStyle = '1px solid rgba(239,68,68,0.2)';
+    textColor = '#FCA5A5';
+  } else {
+    bgStyle = 'rgba(255,255,255,0.04)';
+    borderStyle = '1px solid rgba(255,255,255,0.08)';
+    textColor = 'rgba(255,255,255,0.85)';
+  }
+
   return (
     <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-4 ws-enter-up`}>
-      <div 
+      <div
         className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed`}
         style={{
-          background: isUser ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.04)',
-          border: isUser ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.08)',
-          color: isUser ? '#E0F2FE' : 'rgba(255,255,255,0.85)',
+          background: bgStyle,
+          border: borderStyle,
+          color: textColor,
           borderBottomRightRadius: isUser ? '4px' : '16px',
           borderBottomLeftRadius: isUser ? '16px' : '4px',
         }}
       >
-        {/* Render a tiny icon for AI */}
+        {/* Render a tiny icon for AI or error */}
         {!isUser && (
           <div className="flex items-center gap-2 mb-1.5 opacity-60">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" />
-              <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.8" />
-              <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.6" />
-              <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" opacity="0.5" />
-            </svg>
-            <span className="text-[0.65rem] font-bold tracking-wider uppercase">Blueprint AI</span>
+            {isError ? (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+                <circle cx="8" cy="8" r="7" stroke="#F87171" strokeWidth="1.2" />
+                <path d="M8 5v4M8 11v.5" stroke="#F87171" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+                <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" />
+                <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.8" />
+                <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.6" />
+                <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" opacity="0.5" />
+              </svg>
+            )}
+            <span className="text-[0.65rem] font-bold tracking-wider uppercase">
+              {isError ? 'Error' : 'Blueprint AI'}
+            </span>
           </div>
         )}
         <p className="whitespace-pre-wrap">{msg.content}</p>
+        {/* Applied badge for successful refinements */}
+        {msg.applied && (
+          <div className="mt-2 flex items-center gap-1.5" style={{ color: '#34D399', fontSize: '0.65rem' }}>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
+              <path d="M2 6l3 3 5-5" stroke="#34D399" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Applied to draft — review and Save to persist
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) => {
+const ChatPanel = ({
+  projectId,
+  activeDocId,
+  onDocumentRefined,
+  onApplyRefinement,  // (normalizedDoc) => void — applies to DocumentViewer local draft
+  width = 320,
+}) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  
+
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom whenever messages change
@@ -60,14 +107,14 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // Load chat history when active document changes
+  // Reset chat when active document changes (session-local — no persistence)
   useEffect(() => {
     if (!activeDocId || !projectId) return;
-    
+
     let isMounted = true;
     setLoadingHistory(true);
-    setMessages([]); // Clear while loading
-    
+    setMessages([]);
+
     fetchDocumentChat(projectId, activeDocId)
       .then(history => {
         if (isMounted) {
@@ -86,34 +133,55 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
     e.preventDefault();
     if (!input.trim() || isTyping) return;
 
-    const userPrompt = input.trim();
+    const userInstruction = input.trim();
     setInput('');
-    
+
     // Add optimistic user message
-    const tempUserMsg = { id: Date.now().toString(), role: 'user', content: userPrompt };
-    setMessages(prev => [...prev, tempUserMsg]);
+    const userMsgId = `user-${Date.now()}`;
+    setMessages(prev => [...prev, { id: userMsgId, role: 'user', content: userInstruction }]);
     setIsTyping(true);
 
     try {
-      // Call mock refinement API
-      const { message, updatedDocument } = await refineDocument(projectId, activeDocId, userPrompt);
-      setMessages(prev => [...prev, message]);
-      
-      // Notify parent to refresh the document view
-      if (updatedDocument && onDocumentRefined) {
-        onDocumentRefined(updatedDocument);
+      // Call the real backend refinement API
+      const { message, updatedContent } = await refineDocument(projectId, activeDocId, userInstruction);
+
+      // Build AI response message
+      const aiMsg = {
+        id: `ai-${Date.now()}`,
+        role: 'assistant',
+        content: message,
+        applied: !!updatedContent,
+      };
+      setMessages(prev => [...prev, aiMsg]);
+
+      // Apply to local draft via normalizeDocumentContent (same path as loading)
+      const applyFn = onDocumentRefined || onApplyRefinement;
+      if (updatedContent && applyFn) {
+        const normalizedDoc = normalizeDocumentContent(activeDocId, updatedContent, {
+          title: updatedContent.title,
+          status: 'ready',
+          projectId,
+        });
+        if (normalizedDoc) {
+          applyFn(normalizedDoc);
+        }
       }
-    } catch (error) {
-      // Handle error gracefully
-      setMessages(prev => [...prev, { 
-        id: Date.now().toString(), 
-        role: 'ai', 
-        content: "Sorry, I encountered an error while trying to update the document." 
+    } catch (err) {
+      // Extract error message from normalized API error
+      const errMsg = err?.message || 'I encountered an error while trying to update the document. Please try again.';
+      setMessages(prev => [...prev, {
+        id: `err-${Date.now()}`,
+        role: 'error',
+        content: errMsg,
       }]);
     } finally {
       setIsTyping(false);
     }
   };
+
+  // Doc label for display
+  const docMeta = BLUEPRINT_DOCS.find(d => d.id === activeDocId);
+  const docLabel = docMeta?.label || activeDocId;
 
   return (
     <aside
@@ -127,7 +195,7 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
       aria-label="AI Chat panel"
     >
       {/* Header */}
-      <div 
+      <div
         className="px-5 py-4 shrink-0 flex items-center justify-between"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
@@ -136,11 +204,11 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
             Blueprint AI
           </h3>
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Refining {activeDocId}
+            Refining {docLabel}
           </p>
         </div>
-        <div 
-          className="flex items-center gap-1.5 px-2 py-1 rounded" 
+        <div
+          className="flex items-center gap-1.5 px-2 py-1 rounded"
           style={{ background: 'rgba(16,185,129,0.1)', color: '#34D399', fontSize: '0.65rem' }}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
@@ -160,7 +228,7 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <p className="text-xs max-w-[200px] leading-relaxed">
-              How can I help you refine this {activeDocId}? You can ask me to add sections, update fields, or restructure the content.
+              How can I help you refine this {docLabel}?
             </p>
           </div>
         ) : (
@@ -168,11 +236,11 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
             {messages.map(msg => (
               <ChatMessage key={msg.id} msg={msg} />
             ))}
-            
+
             {/* Typing indicator */}
             {isTyping && (
               <div className="flex w-full justify-start mb-4 ws-enter-up">
-                <div 
+                <div
                   className="rounded-2xl px-4 py-3 flex items-center gap-1.5"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
@@ -192,7 +260,7 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
       </div>
 
       {/* Input Area */}
-      <div 
+      <div
         className="shrink-0 p-4"
         style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
@@ -206,10 +274,10 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
                 handleSubmit(e);
               }
             }}
-            placeholder={`Ask AI to modify ${activeDocId}...`}
+            placeholder={`Describe a change to ${docLabel}…`}
             className="w-full bg-[#161B22] rounded-xl pl-4 pr-12 py-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 scrollbar-hide"
-            style={{ 
-              color: 'rgba(255,255,255,0.9)', 
+            style={{
+              color: 'rgba(255,255,255,0.9)',
               border: '1px solid rgba(255,255,255,0.1)',
               minHeight: '44px',
               maxHeight: '120px'
@@ -221,7 +289,7 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
             type="submit"
             disabled={!input.trim() || isTyping || loadingHistory}
             className="absolute right-2 bottom-2 p-1.5 rounded-lg text-white transition-colors disabled:opacity-30"
-            style={{ 
+            style={{
               background: input.trim() && !isTyping ? '#3B82F6' : 'transparent',
               color: input.trim() && !isTyping ? '#fff' : 'rgba(255,255,255,0.4)',
             }}
@@ -232,7 +300,7 @@ const ChatPanel = ({ projectId, activeDocId, onDocumentRefined, width = 320 }) =
           </button>
         </form>
         <p className="text-[0.6rem] text-center mt-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          AI refinements are automatically applied to the document.
+          Changes are applied to your draft. Use Save to persist.
         </p>
       </div>
     </aside>
