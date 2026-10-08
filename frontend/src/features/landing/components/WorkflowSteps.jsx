@@ -183,7 +183,7 @@ const WorkflowSteps = () => {
       </div>
 
       {/* ── Step labels row ── */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-1 sm:gap-2">
         {STEPS.map((step, i) => {
           const isActive  = i <= activeStep;
           const isCurrent = i === activeStep;
@@ -192,17 +192,17 @@ const WorkflowSteps = () => {
               key={step.id}
               id={`workflow-step-${step.id}`}
               onClick={() => setActiveStep(i)}
-              className="flex flex-col items-center text-center gap-1 px-0"
+              className="flex flex-col items-center text-center gap-0.5 sm:gap-1 px-0"
             >
               <motion.p
-                className="bp-mono text-[9px] mb-0.5"
+                className="bp-mono text-[8px] sm:text-[9px] mb-0.5"
                 animate={{ color: isActive ? 'rgba(34,211,238,0.75)' : 'rgba(255,255,255,0.2)' }}
                 transition={{ duration: 0.3 }}
               >
                 {step.id}
               </motion.p>
               <motion.h3
-                className="text-sm font-semibold leading-tight"
+                className="text-xs sm:text-sm font-semibold leading-tight"
                 animate={{
                   color: isCurrent ? '#ffffff' : isActive ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.25)',
                 }}
@@ -211,7 +211,7 @@ const WorkflowSteps = () => {
                 {step.title}
               </motion.h3>
               <motion.p
-                className="text-xs leading-relaxed max-w-[150px]"
+                className="hidden md:block text-xs leading-relaxed max-w-[150px]"
                 animate={{ color: isActive ? 'rgba(255,255,255,0.42)' : 'rgba(255,255,255,0.16)' }}
                 transition={{ duration: 0.3 }}
               >

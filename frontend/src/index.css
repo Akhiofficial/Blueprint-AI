@@ -49,6 +49,14 @@
     background-clip: text;
   }
 
+  /* Reusable silver typography gradient — white to metallic silver to muted gray */
+  .text-gradient-silver {
+    background: linear-gradient(180deg, #FFFFFF 15%, #CBD5E1 65%, #94A3B8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* Subtle grid background */
   .bp-grid-bg {
     background-image:
@@ -83,7 +91,7 @@
 
   /* Navbar pill */
   .bp-navbar {
-    background: rgba(8, 11, 15, 0.7);
+    background: rgba(8, 11, 15, 0.75);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255,255,255,0.08);
@@ -99,34 +107,42 @@
     box-shadow: 0 2px 12px rgba(0,0,0,0.5);
   }
 
-  /* Primary button */
+  /* Primary button — BlueprintAI blue gradient */
   .bp-btn-primary {
-    background: #3B82F6;
+    background: linear-gradient(135deg, #1E40AF 0%, #2563EB 55%, #3B82F6 100%);
     color: #fff;
     border-radius: 8px;
     font-weight: 500;
-    transition: all 0.2s ease;
-    box-shadow: 0 0 20px rgba(59,130,246,0.25);
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 16px rgba(59,130,246,0.18);
   }
   .bp-btn-primary:hover {
-    background: #2563EB;
-    transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(59,130,246,0.4);
+    background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 55%, #2563EB 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 24px rgba(59,130,246,0.28);
+  }
+  .bp-btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
   }
 
-  /* Ghost button */
+  /* Ghost / secondary button */
   .bp-btn-ghost {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.04);
     color: #D1D5DB;
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
   .bp-btn-ghost:hover {
     background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.18);
-    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .bp-btn-ghost:active {
+    transform: translateY(0);
   }
 
   /* Mono label eyebrow text */

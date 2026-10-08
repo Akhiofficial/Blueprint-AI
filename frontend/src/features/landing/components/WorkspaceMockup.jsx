@@ -64,7 +64,7 @@ const WorkspaceMockup = () => {
         {/* Left: Project navigation */}
         <motion.div
           variants={itemVariants}
-          className="w-40 flex-shrink-0 border-r border-white/[0.06] p-4"
+          className="hidden sm:block w-36 md:w-40 flex-shrink-0 border-r border-white/[0.06] p-4"
           style={{ background: 'rgba(8,11,15,0.5)' }}
         >
           <p className="bp-mono text-[9px] text-white/25 mb-3 tracking-widest">PROJECT</p>
@@ -98,20 +98,20 @@ const WorkspaceMockup = () => {
         {/* Center: SRS document */}
         <motion.div
           variants={itemVariants}
-          className="flex-1 p-6 overflow-hidden"
+          className="flex-1 p-4 sm:p-6 overflow-hidden"
           style={{ background: '#0D1117' }}
         >
           <p className="bp-mono text-[9px] text-white/20 mb-4 tracking-widest uppercase">
             Software Requirements Specification
           </p>
 
-          <h2 className="text-lg font-semibold text-white mb-2">01 Introduction</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-white mb-2">01 Introduction</h2>
           <p className="text-xs text-white/45 mb-5 leading-relaxed">
             This document defines the functional and non-functional requirements
             for the campus placement platform, including scope, actors and system constraints.
           </p>
 
-          <h2 className="text-base font-semibold text-white mb-3">02 Functional Requirements</h2>
+          <h2 className="text-sm sm:text-base font-semibold text-white mb-3">02 Functional Requirements</h2>
 
           {/* FR-001 */}
           <motion.div
@@ -154,7 +154,7 @@ const WorkspaceMockup = () => {
         {/* Right: AI Copilot */}
         <motion.div
           variants={itemVariants}
-          className="w-44 flex-shrink-0 border-l border-white/[0.06] p-4 flex flex-col gap-4"
+          className="hidden lg:flex w-44 flex-shrink-0 border-l border-white/[0.06] p-4 flex-col gap-4"
           style={{ background: 'rgba(8,11,15,0.6)' }}
         >
           <div>

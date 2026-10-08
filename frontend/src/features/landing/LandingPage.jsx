@@ -4,6 +4,8 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
 
+import Button from '../../components/ui/Button';
+import blueprintLogo from '../../assets/BlueprintAI_Logo.png';
 import Navbar          from './components/Navbar';
 import WorkspaceMockup from './components/WorkspaceMockup';
 import WorkflowSteps   from './components/WorkflowSteps';
@@ -294,50 +296,49 @@ const LandingPage = () => {
             {/* H1 */}
             <motion.h1
               variants={fadeUp}
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white leading-[1.05] tracking-tight mb-6"
+              className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-[1.08] sm:leading-[1.05] text-gradient-silver"
             >
               Turn Ideas Into
               <br />
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.45) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                Engineering Blueprints.
-              </span>
+              Engineering
+              <br />
+              Blueprints.
             </motion.h1>
 
             {/* Supporting text */}
             <motion.p
               variants={fadeUp}
-              className="text-base md:text-lg text-white/40 max-w-xl leading-relaxed mb-10"
+              className="text-base sm:text-lg text-slate-400 max-w-xl leading-relaxed mb-8 sm:mb-10 font-normal"
             >
               Transform software ideas and requirements into structured BRDs, SRS documents,
               user stories, database schemas, and REST API designs.
             </motion.p>
 
             {/* CTA Buttons */}
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
-              <Link
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
+              <Button
                 to="/register"
                 id="hero-cta-primary"
-                className="bp-btn-primary px-7 py-3.5 text-sm inline-flex items-center gap-2"
+                variant="primary"
+                size="lg"
+                className="w-full sm:w-auto"
               >
                 Create Your Blueprint
-                <span aria-hidden>→</span>
-              </Link>
-              <button
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </Button>
+              <Button
                 id="hero-cta-secondary"
-                className="bp-btn-ghost px-7 py-3.5 text-sm"
+                variant="secondary"
+                size="lg"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   document.querySelector('#product')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
                 Explore Workspace
-              </button>
+              </Button>
             </motion.div>
           </motion.div>
         </div>
@@ -362,7 +363,7 @@ const LandingPage = () => {
 
         <motion.h2
           variants={fadeUp}
-          className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6 max-w-2xl"
+          className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-6 max-w-2xl text-gradient-silver"
         >
           Great software starts with
           <br />
@@ -416,7 +417,7 @@ const LandingPage = () => {
 
         <motion.h2
           variants={fadeUp}
-          className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4 max-w-2xl"
+          className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl text-gradient-silver"
         >
           Five steps from idea to
           <br />
@@ -442,11 +443,11 @@ const LandingPage = () => {
 
         <motion.h2
           variants={fadeUp}
-          className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4 max-w-2xl"
+          className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl text-gradient-silver"
         >
           One workspace.
           <br />
-          <span className="text-white/55">Every engineering decision connected.</span>
+          <span className="text-white/60">Every engineering decision connected.</span>
         </motion.h2>
 
         <motion.p variants={fadeUp} className="text-white/35 mb-12 max-w-lg text-sm">
@@ -465,11 +466,11 @@ const LandingPage = () => {
 
         <motion.h2
           variants={fadeUp}
-          className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4"
+          className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 text-gradient-silver"
         >
           Everything you need
           <br />
-          <span className="text-white/55">before you start coding.</span>
+          <span className="text-white/60">before you start coding.</span>
         </motion.h2>
 
         <motion.p variants={fadeUp} className="text-white/35 mb-12 max-w-lg text-sm">
@@ -490,11 +491,11 @@ const LandingPage = () => {
 
         <motion.h2
           variants={fadeUp}
-          className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4 max-w-2xl"
+          className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl text-gradient-silver"
         >
           Start with an idea.
           <br />
-          <span className="text-white/55">Get structured requirements.</span>
+          <span className="text-white/60">Get structured requirements.</span>
         </motion.h2>
 
         <motion.p variants={fadeUp} className="text-white/35 mb-12 max-w-lg text-sm">
@@ -541,7 +542,7 @@ const LandingPage = () => {
             <Eyebrow>AI COPILOT</Eyebrow>
             <motion.h2
               variants={fadeUp}
-              className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4"
+              className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 text-gradient-silver"
             >
               AI that works around
               <br />
@@ -638,11 +639,11 @@ const LandingPage = () => {
 
         <motion.h2
           variants={fadeUp}
-          className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4 max-w-2xl"
+          className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl text-gradient-silver"
         >
           Better context.
           <br />
-          <span className="text-white/55">Better blueprints.</span>
+          <span className="text-white/60">Better blueprints.</span>
         </motion.h2>
 
         <motion.p variants={fadeUp} className="text-white/35 mb-12 max-w-lg text-sm leading-relaxed">
@@ -693,20 +694,20 @@ const LandingPage = () => {
             <Eyebrow>EDIT & REGENERATE</Eyebrow>
             <motion.h2
               variants={fadeUp}
-              className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4"
+              className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 text-gradient-silver"
             >
               AI generates.
               <br />
-              <span className="text-white/55">You stay in control.</span>
+              <span className="text-white/60">You stay in control.</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-white/35 mb-8 text-sm leading-relaxed">
               Every generated requirement can be improved, expanded, regenerated or
               manually edited. AI assists — you decide.
             </motion.p>
             <motion.div variants={fadeUp} className="flex gap-3">
-              <Link to="/register" className="bp-btn-primary px-5 py-2.5 text-sm">
+              <Button to="/register" variant="primary" size="md">
                 Try It Free
-              </Link>
+              </Button>
             </motion.div>
           </div>
 
@@ -785,11 +786,11 @@ const LandingPage = () => {
             <Eyebrow>VERSION CONTROL</Eyebrow>
             <motion.h2
               variants={fadeUp}
-              className="text-3xl md:text-5xl font-bold text-white leading-tight mb-4"
+              className="text-2xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 text-gradient-silver"
             >
               Your blueprint evolves
               <br />
-              <span className="text-white/55">with your idea.</span>
+              <span className="text-white/60">with your idea.</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-white/35 text-sm leading-relaxed">
               Every significant change to your blueprint is versioned automatically.
@@ -829,7 +830,7 @@ const LandingPage = () => {
           <div>
             <motion.h2
               variants={fadeUp}
-              className="text-2xl md:text-3xl font-bold text-white mb-2"
+              className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 text-gradient-silver"
             >
               Take your blueprint wherever development happens.
             </motion.h2>
@@ -837,26 +838,30 @@ const LandingPage = () => {
               Export your complete blueprint as PDF or Markdown — ready for your team.
             </motion.p>
           </div>
-          <motion.div variants={fadeUp} className="flex gap-3 flex-shrink-0">
-            <button
+          <motion.div variants={fadeUp} className="flex flex-wrap gap-3 flex-shrink-0">
+            <Button
               id="export-pdf"
-              className="bp-btn-ghost px-5 py-2.5 text-sm flex items-center gap-2"
+              variant="secondary"
+              size="md"
+              className="inline-flex items-center gap-2"
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
                 <rect x="1" y="1" width="10" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
                 <path d="M3 5h6M3 7h6M3 9h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
               </svg>
               Export PDF
-            </button>
-            <button
+            </Button>
+            <Button
               id="export-markdown"
-              className="bp-btn-ghost px-5 py-2.5 text-sm flex items-center gap-2"
+              variant="secondary"
+              size="md"
+              className="inline-flex items-center gap-2"
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
                 <path d="M1 3h12M1 7l3 3 3-3M7 7v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
               </svg>
               Export Markdown
-            </button>
+            </Button>
           </motion.div>
         </div>
       </Section>
@@ -897,7 +902,7 @@ const LandingPage = () => {
           </motion.p>
 
           <motion.h2
-            className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight mb-6"
+            className="text-3xl sm:text-5xl md:text-6xl font-bold leading-tight mb-6 text-gradient-silver"
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -924,15 +929,17 @@ const LandingPage = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <Link
+            <Button
               to="/register"
               id="final-cta-btn"
-              className="bp-btn-primary px-8 py-4 text-base inline-flex items-center gap-2"
-              style={{ fontSize: '15px' }}
+              variant="primary"
+              size="lg"
             >
               Create Your Blueprint
-              <span aria-hidden>→</span>
-            </Link>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 8h10M9 4l4 4-4 4" />
+              </svg>
+            </Button>
           </motion.div>
         </div>
       </section>
@@ -948,18 +955,12 @@ const LandingPage = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-bp-blue/10 border border-bp-blue/20">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2"/>
-                  <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.7"/>
-                  <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.7"/>
-                  <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" opacity="0.5"/>
-                </svg>
-              </div>
-              <span className="text-sm font-semibold text-white">BlueprintAI</span>
-            </div>
-            <p className="text-xs text-white/25 leading-relaxed max-w-[180px]">
+            <img
+              src={blueprintLogo}
+              alt="BlueprintAI"
+              className="h-6 w-auto object-contain mb-3"
+            />
+            <p className="text-xs text-white/30 leading-relaxed max-w-[180px]">
               AI-powered software planning.
             </p>
           </div>

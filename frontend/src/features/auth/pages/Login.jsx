@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import AuthLayout from '../../../layouts/AuthLayout';
 import LoginForm from '../components/LoginForm';
 import useAuth from '../hooks/useAuth';
@@ -7,7 +8,18 @@ import { useAuthContext } from '../auth.context';
 // UI layer — renders the page shell, passes hook interface to form
 const Login = () => {
   const { handleLogin } = useAuth();
-  const { loading, error } = useAuthContext();
+  const { loading, error, setError } = useAuthContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── Show error when Google OAuth redirects back with ?error= ──
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError === 'google_auth_failed') {
+      setError('Google sign-in failed. Please try again or use email/password.');
+      // Clean the query param from the URL so refreshing doesn't re-trigger
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, setError]);
 
   return (
     <AuthLayout

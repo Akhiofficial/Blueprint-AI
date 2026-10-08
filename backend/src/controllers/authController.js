@@ -100,5 +100,28 @@ const getMe = asyncHandler(async (req, res) => {
   });
 });
 
-export { register, login, logout, getMe };
+export { register, login, logout, getMe, googleCallback };
+
+// ─────────────────────────────────────────────
+// @desc    Google OAuth callback — set cookie & redirect to frontend
+// @route   GET /api/auth/google/callback  (called by Passport after Google)
+// @access  Public (OAuth callback)
+// ─────────────────────────────────────────────
+// NOTE: Passport attaches req.user before this handler runs (via passport.authenticate).
+// We reuse the EXISTING generateToken() — identical to email/password login.
+// The JWT is NEVER sent as JSON or in the URL.
+// ─────────────────────────────────────────────
+async function googleCallback(req, res) {
+  try {
+    if (!req.user) {
+      return res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+    }
+    // Reuse the existing JWT + httpOnly cookie mechanism — same as email/password login
+    generateToken(res, req.user._id);
+    res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+  } catch {
+    res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+  }
+}
+
 

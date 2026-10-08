@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import ErrorMessage from '../../../components/common/ErrorMessage';
 
+// The API base URL is used to build the full Google OAuth initiation URL.
+// We use window.location.href (not Axios) because OAuth requires a real browser navigation.
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 const LoginForm = ({ onSubmit, isLoading, error }) => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [focusField, setFocusField] = useState('');
@@ -118,8 +122,9 @@ const LoginForm = ({ onSubmit, isLoading, error }) => {
 
       {/* ── Social Login ── */}
       <button
+        id="login-google"
         type="button"
-        onClick={() => alert("Social login is not active in dev mode.")}
+        onClick={() => { window.location.href = `${API_BASE}/api/auth/google`; }}
         className="w-full rounded-xl py-3 text-sm text-slate-300 hover:text-white border transition-colors flex items-center justify-center gap-2.5 cursor-pointer"
         style={{
           background: 'rgba(255,255,255,0.02)',
