@@ -39,6 +39,7 @@ const DocumentViewer = ({
   onDocumentLoaded,   // callback to inform parent of loaded doc (for header/context)
   onSaveStateChange,  // callback: 'saved' | 'saving' | 'unsaved' | null
   onDocumentSaved,    // callback when document is saved (for history refresh)
+  onSaveError,        // callback when document save fails
   externalDocUpdate,  // When the chat panel updates the doc
   previewVersion,     // { versionNumber, createdAt, changes }
   onClearPreview,     // callback to clear preview
@@ -219,6 +220,7 @@ const DocumentViewer = ({
     } catch (err) {
       console.error('Failed to save document:', err);
       onSaveStateChange?.('unsaved');
+      onSaveError?.(err);
     } finally {
       setIsSaving(false);
     }

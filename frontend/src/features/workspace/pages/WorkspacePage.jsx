@@ -22,7 +22,9 @@ import DocumentViewer from '../components/DocumentViewer';
 import ChatPanel from '../components/ChatPanel';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import ExportDialog from '../components/ExportDialog';
+import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
 import ErrorState from '../../../components/common/ErrorState';
+import { useToast } from '../../../components/common/ToastContext';
 
 // ─── Workspace loading skeleton ───────────────────────────────────────────────
 
@@ -58,6 +60,8 @@ const WorkspacePage = () => {
   const { currentProject, loading: projectLoading } = useProjectsContext();
   const { handleFetchProjectById } = useProjects();
 
+  const toast = useToast();
+
   // ── Document & UI State ──
   const [docStatuses, setDocStatuses] = useState({});
   const [statusLoading, setStatusLoading] = useState(true);
@@ -75,6 +79,11 @@ const WorkspacePage = () => {
   const [previewVersion, setPreviewVersion] = useState(null);
   const [triggerSave, setTriggerSave] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // ── Unsaved Changes Navigation Guard ──
+  const [pendingDocId, setPendingDocId] = useState(null);
+  const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
   // ── Draggable Panel Resizing ──
   const {
@@ -111,15 +120,60 @@ const WorkspacePage = () => {
     loadStatuses();
   }, [loadStatuses]);
 
-  // ── Sync active doc to URL query param ──
+  // ── Sync active doc to URL query param / Guard unsaved edits ──
   const handleSelectDoc = useCallback((docId) => {
+    if (docId === activeDocId) return;
+    if (isSavingAndSwitching) return; // Prevent rapid click race conditions
+
+    if (saveState === 'unsaved') {
+      setPendingDocId(docId);
+      setUnsavedDialogOpen(true);
+      return;
+    }
+
     setActiveDocId(docId);
     setSearchParams({ doc: docId }, { replace: true });
     setSaveState(null);
     setPreviewVersion(null);
-  }, [setSearchParams]);
+  }, [activeDocId, saveState, isSavingAndSwitching, setSearchParams]);
 
-  // ── Handle unsaved changes on window navigation ──
+  // ── Dialog Action: Cancel (Stay on current doc) ──
+  const handleCancelSwitch = useCallback(() => {
+    if (isSavingAndSwitching) return;
+    setUnsavedDialogOpen(false);
+    setPendingDocId(null);
+  }, [isSavingAndSwitching]);
+
+  // ── Dialog Action: Discard & Switch ──
+  const handleDiscardAndSwitch = useCallback(() => {
+    if (isSavingAndSwitching || !pendingDocId) return;
+    const target = pendingDocId;
+    setUnsavedDialogOpen(false);
+    setPendingDocId(null);
+    setActiveDocId(target);
+    setSearchParams({ doc: target }, { replace: true });
+    setSaveState(null);
+    setPreviewVersion(null);
+  }, [isSavingAndSwitching, pendingDocId, setSearchParams]);
+
+  // ── Dialog Action: Save & Switch ──
+  const handleSaveAndSwitch = useCallback(() => {
+    if (isSavingAndSwitching || !pendingDocId) return;
+    setIsSavingAndSwitching(true);
+    setTriggerSave(prev => prev + 1);
+  }, [isSavingAndSwitching, pendingDocId]);
+
+  // ── Handle save error ──
+  const handleSaveError = useCallback((err) => {
+    if (isSavingAndSwitching) {
+      setIsSavingAndSwitching(false);
+      setUnsavedDialogOpen(false);
+      setPendingDocId(null);
+      toast.error('Failed to save document. Your changes were preserved.');
+    }
+  }, [isSavingAndSwitching, toast]);
+
+  // ── Handle unsaved changes on window navigation (beforeunload) ──
   useEffect(() => {
     const handler = (e) => {
       if (saveState === 'unsaved') {
@@ -142,10 +196,23 @@ const WorkspacePage = () => {
       }
     }));
     setRefreshKey(k => k + 1);
-  }, [activeDocId]);
+
+    // If a document switch was pending, complete the switch now
+    if (pendingDocId) {
+      const target = pendingDocId;
+      setPendingDocId(null);
+      setIsSavingAndSwitching(false);
+      setUnsavedDialogOpen(false);
+      setActiveDocId(target);
+      setSearchParams({ doc: target }, { replace: true });
+      setSaveState(null);
+      setPreviewVersion(null);
+    }
+  }, [activeDocId, pendingDocId, setSearchParams]);
 
   const projectName = projectLoading ? '…' : currentProject?.title ?? 'Project';
   const activeDocMeta = BLUEPRINT_DOCS.find(d => d.id === activeDocId);
+  const pendingDocMeta = BLUEPRINT_DOCS.find(d => d.id === pendingDocId);
 
   return (
     <div
@@ -217,6 +284,7 @@ const WorkspacePage = () => {
               docStatuses={docStatuses}
               onDocumentLoaded={setActiveDoc}
               onDocumentSaved={handleDocumentSaved}
+              onSaveError={handleSaveError}
               onSaveStateChange={setSaveState}
               onDocumentGenerated={loadStatuses}
               externalDocUpdate={activeDoc}
@@ -270,6 +338,17 @@ const WorkspacePage = () => {
           )}
         </div>
       )}
+
+      {/* ── Unsaved Changes Confirmation Dialog ── */}
+      <UnsavedChangesDialog
+        isOpen={unsavedDialogOpen}
+        fromDocLabel={activeDocMeta?.label || activeDocId}
+        toDocLabel={pendingDocMeta?.label || pendingDocId}
+        isSaving={isSavingAndSwitching}
+        onCancel={handleCancelSwitch}
+        onDiscard={handleDiscardAndSwitch}
+        onSaveAndSwitch={handleSaveAndSwitch}
+      />
 
       {/* ── Export Dialog ── */}
       <ExportDialog
