@@ -31,5 +31,6 @@ export const generateApiDocument = async (srsOutput, projectInfo = {}, ragContex
     systemInstruction: SYSTEM_INSTRUCTION,
     schema: apiSpecSchema,
     modelName,
+    role: 'primary',
   });
 };

@@ -31,5 +31,6 @@ export const generateSRSDocument = async (brdOutput, projectInfo = {}, ragContex
     systemInstruction: SYSTEM_INSTRUCTION,
     schema: srsSchema,
     modelName,
+    role: 'primary',
   });
 };

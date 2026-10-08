@@ -25,5 +25,6 @@ export const analyzeRequirements = async (combinedText, projectInfo = {}, modelN
     systemInstruction: SYSTEM_INSTRUCTION,
     schema: requirementAnalysisSchema,
     modelName,
+    role: 'primary',
   });
 };

@@ -30,5 +30,6 @@ export const generateBRDDocument = async (analysisOutput, projectInfo = {}, ragC
     systemInstruction: SYSTEM_INSTRUCTION,
     schema: brdSchema,
     modelName,
+    role: 'primary',
   });
 };

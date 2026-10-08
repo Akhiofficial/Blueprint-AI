@@ -32,5 +32,6 @@ export const generateUserStoriesDocument = async (srsOutput, projectInfo = {}, r
     systemInstruction: SYSTEM_INSTRUCTION,
     schema: userStoriesSchema,
     modelName,
+    role: 'primary',
   });
 };

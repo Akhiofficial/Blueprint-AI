@@ -16,15 +16,26 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} options.prompt - Main user prompt
  * @param {string} [options.systemInstruction] - System prompt role/rules
  * @param {string} [options.modelName] - Preferred OpenRouter model identifier
+ * @param {string} [options.role] - Logical model role ('primary' | 'refinement' | 'lightweight')
  * @returns {Promise<Object>} Parsed JSON object from OpenRouter
  */
-export const generateJSON = async ({ prompt, systemInstruction, modelName }) => {
+export const generateJSON = async ({ prompt, systemInstruction, modelName, role = 'primary' }) => {
   const apiKey = env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error('OPENROUTER_API_KEY is not configured in environment variables.');
   }
 
-  const primaryModel = modelName || env.OPENROUTER_MODEL || 'inclusionai/ling-3.0-flash-sante:free';
+  let primaryModel = modelName;
+  if (!primaryModel) {
+    if (role === 'refinement') {
+      primaryModel = env.OPENROUTER_REFINEMENT_MODEL || env.OPENROUTER_MODEL || 'inclusionai/ling-3.0-flash-sante:free';
+    } else if (role === 'lightweight') {
+      primaryModel = env.OPENROUTER_LIGHTWEIGHT_MODEL || 'cohere/north-mini-code:free';
+    } else {
+      primaryModel = env.OPENROUTER_MODEL || 'inclusionai/ling-3.0-flash-sante:free';
+    }
+  }
+
   const modelCandidates = [
     primaryModel,
     'inclusionai/ling-3.0-flash-sante:free',

@@ -82,6 +82,7 @@ export const refineDocumentContent = async ({
     systemInstruction: REFINEMENT_SYSTEM_INSTRUCTION,
     schema: envelopeSchema,
     modelName,
+    role: 'refinement',
   });
 
   if (!result.success) {

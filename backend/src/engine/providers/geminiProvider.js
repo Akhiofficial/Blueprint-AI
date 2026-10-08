@@ -18,9 +18,10 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} options.prompt - Main user prompt
  * @param {string} [options.systemInstruction] - System prompt role/rules
  * @param {string} [options.modelName] - Preferred Gemini model identifier
+ * @param {string} [options.role] - Logical model role ('primary' | 'refinement' | 'lightweight')
  * @returns {Promise<Object>} Parsed JSON object from Gemini
  */
-export const generateJSON = async ({ prompt, systemInstruction, modelName }) => {
+export const generateJSON = async ({ prompt, systemInstruction, modelName, role = 'primary' }) => {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured in environment variables.');
@@ -28,7 +29,17 @@ export const generateJSON = async ({ prompt, systemInstruction, modelName }) => 
 
   const ai = new GoogleGenAI({ apiKey });
 
-  const primaryModel = modelName || env.GEMINI_MODEL || 'gemini-3.6-flash';
+  let primaryModel = modelName;
+  if (!primaryModel) {
+    if (role === 'refinement') {
+      primaryModel = env.GEMINI_REFINEMENT_MODEL || env.GEMINI_MODEL || 'gemini-3.6-flash';
+    } else if (role === 'lightweight') {
+      primaryModel = env.GEMINI_LIGHTWEIGHT_MODEL || 'gemini-3.5-flash-lite';
+    } else {
+      primaryModel = env.GEMINI_MODEL || 'gemini-3.6-flash';
+    }
+  }
+
   const modelCandidates = [
     primaryModel,
     'gemini-3.6-flash',

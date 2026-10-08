@@ -31,5 +31,6 @@ export const generateDatabaseDocument = async (srsOutput, projectInfo = {}, ragC
     systemInstruction: SYSTEM_INSTRUCTION,
     schema: databaseSchemaValidator,
     modelName,
+    role: 'primary'
   });
 };

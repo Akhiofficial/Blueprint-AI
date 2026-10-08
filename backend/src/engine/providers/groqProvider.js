@@ -16,15 +16,26 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} options.prompt - Main user prompt
  * @param {string} [options.systemInstruction] - System prompt role/rules
  * @param {string} [options.modelName] - Preferred Groq model identifier
+ * @param {string} [options.role] - Logical model role ('primary' | 'refinement' | 'lightweight')
  * @returns {Promise<Object>} Parsed JSON object from Groq
  */
-export const generateJSON = async ({ prompt, systemInstruction, modelName }) => {
+export const generateJSON = async ({ prompt, systemInstruction, modelName, role = 'primary' }) => {
   const apiKey = env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error('GROQ_API_KEY is not configured in environment variables.');
   }
 
-  const primaryModel = modelName || env.GROQ_MODEL || 'openai/gpt-oss-120b';
+  let primaryModel = modelName;
+  if (!primaryModel) {
+    if (role === 'refinement') {
+      primaryModel = env.GROQ_REFINEMENT_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b';
+    } else if (role === 'lightweight') {
+      primaryModel = env.GROQ_LIGHTWEIGHT_MODEL || 'openai/gpt-oss-20b';
+    } else {
+      primaryModel = env.GROQ_MODEL || 'openai/gpt-oss-120b';
+    }
+  }
+
   const modelCandidates = [
     primaryModel,
     'openai/gpt-oss-120b',

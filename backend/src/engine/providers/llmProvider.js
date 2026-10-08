@@ -30,16 +30,17 @@ const PROVIDERS = {
 };
 
 /**
- * Executes JSON generation across available LLM providers with automatic fallback.
+ * Executes JSON generation across available LLM providers with automatic fallback and role-based routing.
  *
  * @param {Object} options
  * @param {string} options.prompt - Main user prompt
  * @param {string} [options.systemInstruction] - System prompt role/rules
  * @param {string} [options.modelName] - Optional preferred model identifier
  * @param {string} [options.preferredProvider] - Optional initial provider override
+ * @param {string} [options.role='primary'] - Logical model role ('primary' | 'refinement' | 'lightweight')
  * @returns {Promise<Object>} Parsed JSON object from winning provider
  */
-export const generateJSON = async ({ prompt, systemInstruction, modelName, preferredProvider }) => {
+export const generateJSON = async ({ prompt, systemInstruction, modelName, preferredProvider, role = 'primary' }) => {
   // Parse fallback order from environment (e.g., 'gemini,groq,openrouter')
   const defaultOrder = (env.LLM_FALLBACK_ORDER || 'gemini,groq,openrouter')
     .split(',')
@@ -74,23 +75,23 @@ export const generateJSON = async ({ prompt, systemInstruction, modelName, prefe
     }
 
     try {
-      console.log(`[LLMProvider] DISPATCH → provider=${providerKey}`);
-      const result = await provider.generateJSON({ prompt, systemInstruction, modelName });
+      console.log(`[LLMProvider] DISPATCH → role=${role}, provider=${providerKey}`);
+      const result = await provider.generateJSON({ prompt, systemInstruction, modelName, role });
       const actualModel = result?.model || modelName || 'unknown';
-      console.log(`[LLMProvider] SUCCESS → provider=${providerKey}, model=${actualModel}`);
+      console.log(`[LLMProvider] SUCCESS → role=${role}, provider=${providerKey}, model=${actualModel}`);
       const actualData = result?.data !== undefined ? result.data : result;
-      return { data: actualData, model: actualModel, provider: providerKey };
+      return { data: actualData, model: actualModel, provider: providerKey, role };
     } catch (err) {
       const errMsg = err.message || 'Unknown error';
-      console.warn(`[LLMProvider] FAILED → provider=${providerKey}`);
+      console.warn(`[LLMProvider] FAILED → role=${role}, provider=${providerKey}: ${errMsg}`);
       errors.push(`${provider.name}: ${errMsg}`);
 
       const nextProviderKey = providerOrder[i + 1];
       if (nextProviderKey) {
-        console.warn(`[LLMProvider] FALLBACK → ${providerKey} → ${nextProviderKey}`);
+        console.warn(`[LLMProvider] FALLBACK → role=${role}, ${providerKey} → ${nextProviderKey}`);
       }
     }
   }
 
-  throw new Error(`All LLM providers failed execution:\n- ${errors.join('\n- ')}`);
+  throw new Error(`All LLM providers failed execution for role '${role}':\n- ${errors.join('\n- ')}`);
 };
