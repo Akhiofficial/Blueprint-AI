@@ -14,6 +14,7 @@
 
 import Document from '../../models/Document.js';
 import * as versionService from '../version/versionService.js';
+import { generateChangeSummary } from '../version/changeSummaryService.js';
 
 // ── Map from generationType (backend string) to Document.type enum ──────────
 export const GENERATION_TYPE_TO_DOC_TYPE = {
@@ -232,6 +233,18 @@ export const saveDocumentContent = async ({ projectId, docType, content, userId 
     return { document: doc, versionNumber: doc.currentVersion, isUnchanged: true };
   }
 
+  // Generate a factual change summary from actual BEFORE vs AFTER content
+  let changeSummary = 'Document updated.';
+  try {
+    changeSummary = await generateChangeSummary({
+      docType,
+      beforeContent: doc.content,
+      afterContent: content,
+    });
+  } catch (err) {
+    console.warn(`[DocumentService] Change summary generation failed (fallback used): ${err.message}`);
+  }
+
   const contentString = typeof content === 'string' ? content : JSON.stringify(content);
   const nextVersion = (doc.currentVersion || 1) + 1;
 
@@ -244,11 +257,11 @@ export const saveDocumentContent = async ({ projectId, docType, content, userId 
     documentId:    doc._id,
     versionNumber: nextVersion,
     content:       contentString,
-    changes:       'Manual edit',
+    changes:       changeSummary,
     createdBy:     userId,
   });
 
-  console.log(`[DocumentService] SAVED — docId=${doc._id}, type=${docType}, version=${nextVersion}`);
+  console.log(`[DocumentService] SAVED — docId=${doc._id}, type=${docType}, version=${nextVersion}, changes="${changeSummary}"`);
   return { document: doc, versionNumber: nextVersion, isUnchanged: false };
 };
 
