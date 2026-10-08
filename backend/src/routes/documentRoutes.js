@@ -26,6 +26,7 @@ import {
   getVersionHistory,
   getVersionContent,
   restoreVersion,
+  regenerateSection,
 } from '../controllers/documentController.js';
 import { refineDocument } from '../controllers/refinementController.js';
 
@@ -52,6 +53,10 @@ router.route('/:docType/restore/:versionNumber').put(restoreVersion).post(restor
 // AI Refinement — propose a document change (does NOT persist)
 // Frontend applies to local draft; user must Save explicitly.
 router.route('/:docType/refine').post(refineDocument);
+
+// Section Regeneration (Stage 3A: BRD & SRS) — propose a regenerated section (does NOT persist)
+// Frontend applies to local draft; user must Save explicitly.
+router.route('/:docType/regenerate-section').post(regenerateSection);
 
 export default router;
 

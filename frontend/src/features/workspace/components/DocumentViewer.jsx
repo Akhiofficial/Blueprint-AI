@@ -16,6 +16,7 @@ import {
   generateDocument,
   restoreDocumentVersion,
   normalizeVersionContent,
+  regenerateSectionApi,
   BLUEPRINT_DOCS,
 } from '../services/workspaceService';
 import DocumentActions from './DocumentActions';
@@ -238,11 +239,40 @@ const DocumentViewer = ({
     }
   }, [triggerSave]);
 
-  // ── Section regeneration (Phase 3 connects to API) ──
+  // ── Section regeneration (Stage 3A: BRD & SRS) ──
   const handleRegenSection = async (sectionId) => {
+    const currentSection = document?.sections?.find(s => s.id === sectionId);
+    if (!projectId || !activeDocId || !currentSection) return;
+
     setRegenSectionId(sectionId);
-    await new Promise(r => setTimeout(r, 2000));
-    setRegenSectionId(null);
+    try {
+      const res = await regenerateSectionApi(projectId, activeDocId, sectionId, currentSection);
+      if (res?.regeneratedSection) {
+        const nextSections = document.sections.map(s =>
+          s.id === sectionId ? res.regeneratedSection : s
+        );
+        const updatedDoc = { ...document, sections: nextSections };
+        setDocument(updatedDoc);
+
+        // Clear any staged manual edit for this section so save picks up the regenerated section
+        if (editChangesRef.current[sectionId] !== undefined) {
+          delete editChangesRef.current[sectionId];
+          setEditChanges(prev => {
+            const next = { ...prev };
+            delete next[sectionId];
+            return next;
+          });
+        }
+
+        isDirtyRef.current = true;
+        onSaveStateChange?.('unsaved');
+        onDocumentLoaded?.(updatedDoc);
+      }
+    } catch (err) {
+      console.error(`Failed to regenerate section ${sectionId}:`, err);
+    } finally {
+      setRegenSectionId(null);
+    }
   };
 
   // ── Document generation ──

@@ -686,6 +686,26 @@ export const refineDocument = async (projectId, docType, instruction) => {
   return { message, updatedContent };
 };
 
+/**
+ * Regenerate a single section of a BRD or SRS document (Stage 3A).
+ * Calls the backend regeneration API using the lightweight model role.
+ * Does NOT persist to the database.
+ * The frontend applies the regenerated section to the LOCAL DRAFT only.
+ *
+ * @param {string} projectId      - MongoDB project ID
+ * @param {string} docType        - 'BRD' | 'SRS'
+ * @param {string} sectionId      - The section identifier (e.g. 'brd-objectives')
+ * @param {object} currentSection - Current section content { id, title, content?, items?, table? }
+ * @returns {Promise<{ sectionId: string, regeneratedSection: object, provider: string, model: string }>}
+ */
+export const regenerateSectionApi = async (projectId, docType, sectionId, currentSection) => {
+  const response = await api.post(
+    `/api/projects/${projectId}/documents/${docType}/regenerate-section`,
+    { sectionId, currentSection }
+  );
+  return response.data?.data;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Document Export API
 // ─────────────────────────────────────────────────────────────────────────────

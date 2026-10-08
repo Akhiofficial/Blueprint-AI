@@ -18,6 +18,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import Project from '../models/Project.js';
 import * as documentService from '../services/document/documentService.js';
 import * as versionService from '../services/version/versionService.js';
+import * as sectionRegenerationService from '../services/document/sectionRegenerationService.js';
 
 
 // ── Helper: verify project ownership ────────────────────────────────────────
@@ -271,6 +272,57 @@ export const restoreVersion = asyncHandler(async (req, res) => {
       content:        parsedContent,
       updatedAt:      doc.updatedAt,
     },
+  });
+});
+
+/**
+ * @desc    Regenerate a single section of a BRD or SRS document (Stage 3A)
+ * @route   POST /api/projects/:projectId/documents/:docType/regenerate-section
+ * @access  Private
+ */
+export const regenerateSection = asyncHandler(async (req, res) => {
+  const { projectId, docType } = req.params;
+  const ownerId = req.user._id;
+  const { sectionId, currentSection } = req.body;
+
+  // 1. Stage 3A limitation: BRD and SRS only
+  if (docType !== 'BRD' && docType !== 'SRS') {
+    res.status(400);
+    throw new Error('Section regeneration is currently only supported for BRD and SRS documents.');
+  }
+
+  // 2. Input validation
+  if (!sectionId || typeof sectionId !== 'string') {
+    res.status(400);
+    throw new Error('Request body must include a valid sectionId.');
+  }
+
+  if (!currentSection || typeof currentSection !== 'object') {
+    res.status(400);
+    throw new Error('Request body must include currentSection data.');
+  }
+
+  // 3. Controller-level ownership check
+  const project = await Project.findOne({ _id: projectId, owner: ownerId }).select('title description');
+  if (!project) {
+    res.status(404);
+    throw new Error('Project not found or unauthorized');
+  }
+
+  // 4. Delegate to regeneration service (lightweight model, no DB writes)
+  const result = await sectionRegenerationService.regenerateSection({
+    docType,
+    sectionId,
+    currentSection,
+    projectInfo: {
+      title: project.title,
+      description: project.description,
+    },
+  });
+
+  res.status(200).json({
+    success: true,
+    data: result,
   });
 });
 
