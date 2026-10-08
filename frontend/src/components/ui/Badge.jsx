@@ -1,9 +1,9 @@
 const colorMap = {
-  indigo:  'bg-brand-500/15 text-brand-300 border border-brand-500/30',
-  green:   'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
-  yellow:  'bg-yellow-500/15 text-yellow-300 border border-yellow-500/30',
-  red:     'bg-red-500/15 text-red-300 border border-red-500/30',
-  slate:   'bg-slate-500/15 text-slate-300 border border-slate-500/30',
+  indigo:  'bg-blue-500/10 text-blue-300 border border-blue-500/25',
+  green:   'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25',
+  yellow:  'bg-amber-500/10 text-amber-300 border border-amber-500/25',
+  red:     'bg-rose-500/10 text-rose-300 border border-rose-500/25',
+  slate:   'bg-slate-500/10 text-slate-400 border border-slate-500/20',
 };
 
 const Badge = ({ children, color = 'indigo', className = '' }) => (

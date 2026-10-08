@@ -17,50 +17,29 @@ const DashboardHeader = ({ userName, projectCount = 0 }) => {
   const firstName = userName?.split(' ')[0] ?? 'there';
 
   return (
-    <header className="mb-10 animate-fade-in">
-      {/* Eyebrow */}
-      <p
-        className="bp-mono uppercase mb-3"
-        style={{ fontSize: '0.62rem', letterSpacing: '0.16em', color: '#22D3EE' }}
-      >
-        BLUEPRINTAI / DASHBOARD
-      </p>
-
-      {/* Greeting — white-to-silver gradient matching landing page h1 style */}
-      <h1
-        className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight"
-      >
-        <span
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          {greeting},{' '}{firstName}.
-        </span>
+    <header className="mb-8 animate-fade-in">
+      {/* Greeting */}
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1.5">
+        {greeting},{' '}{firstName}.
       </h1>
 
       {/* Subtitle */}
-      <p
-        className="text-sm leading-relaxed mb-6 max-w-md"
-        style={{ color: 'rgba(255,255,255,0.35)' }}
-      >
+      <p className="text-sm leading-relaxed text-slate-400 mb-5 max-w-lg font-normal">
         {projectCount === 0
           ? 'Turn your software idea into a structured development blueprint.'
           : 'Continue where you left off, or start something new.'}
       </p>
 
-      {/* Primary CTA — dash-btn: softer deep-to-bright blue gradient */}
+      {/* Primary CTA — BlueprintAI blue action */}
       <Link
         to="/projects/new"
         id="dashboard-create-project-cta"
-        className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 text-sm"
+        className="dash-btn inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium rounded-lg shadow-sm"
         aria-label="Create a new project"
       >
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
-          <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
         Create New Project
       </Link>

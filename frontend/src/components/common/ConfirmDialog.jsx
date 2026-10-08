@@ -28,27 +28,27 @@ const ConfirmDialog = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-md bg-surface-card border border-surface-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md bg-[#11161D] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
       >
         <div className="p-6">
-          <h3 id="confirm-dialog-title" className="text-xl font-semibold mb-2 text-surface-text">
+          <h3 id="confirm-dialog-title" className="text-lg font-semibold mb-2 text-white">
             {title}
           </h3>
-          <p className="text-surface-textMuted text-sm">
+          <p className="text-slate-400 text-sm leading-relaxed">
             {message}
           </p>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 bg-surface-bg/50 border-t border-surface-border">
+        <div className="flex justify-end gap-3 px-6 py-4 bg-white/[0.02] border-t border-white/[0.06]">
           <button
             onClick={onCancel}
             disabled={isPending}
-            className="px-5 py-2.5 rounded-lg text-sm font-medium text-surface-text bg-surface-card border border-surface-border hover:bg-surface-border transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-lg text-xs font-medium text-slate-300 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
           >
             {cancelText}
           </button>
@@ -56,14 +56,14 @@ const ConfirmDialog = ({
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg flex items-center justify-center min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all shadow-md flex items-center justify-center min-w-[90px] disabled:opacity-50 disabled:cursor-not-allowed ${
               isDestructive 
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20' 
-                : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand-500/20'
+                ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20' 
+                : 'dash-btn'
             }`}
           >
             {isPending ? (
-              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
             ) : confirmText}
           </button>
         </div>

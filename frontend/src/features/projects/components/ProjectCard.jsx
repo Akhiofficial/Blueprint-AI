@@ -44,12 +44,11 @@ const ProjectCard = ({ project, onDelete }) => {
 
   return (
     <article
-      className="dash-card group flex flex-col gap-0 transition-all duration-200 hover:border-bp-blue/30"
-      style={{ '--hover-shadow': '0 0 0 1px rgba(59,130,246,0.2), 0 8px 32px rgba(0,0,0,0.4)' }}
+      className="dash-card group flex flex-col gap-0 transition-all duration-200"
       aria-label={`Project: ${title}`}
     >
       {/* ── Card Header ───────────────────────────────────────── */}
-      <div className="p-5 pb-4">
+      <div className="p-5 pb-3.5">
         {/* Top row: title + category badge */}
         <div className="flex items-start justify-between gap-3 mb-2">
           <Link
@@ -57,15 +56,12 @@ const ProjectCard = ({ project, onDelete }) => {
             id={`project-card-link-${_id}`}
             className="min-w-0 flex-1"
           >
-            <h2
-              className="text-sm font-semibold leading-snug line-clamp-1 transition-colors duration-150 group-hover:text-white"
-              style={{ color: 'rgba(255,255,255,0.85)' }}
-            >
+            <h2 className="text-sm font-semibold leading-snug line-clamp-1 text-white/95 group-hover:text-blue-400 transition-colors">
               {title}
             </h2>
           </Link>
           {category && (
-            <Badge color={color} className="shrink-0 text-[0.6rem]">
+            <Badge color={color} className="shrink-0 text-[0.625rem] px-2 py-0.5">
               {category}
             </Badge>
           )}
@@ -73,10 +69,7 @@ const ProjectCard = ({ project, onDelete }) => {
 
         {/* Description */}
         {description && (
-          <p
-            className="text-xs leading-relaxed line-clamp-2 mb-3"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
-          >
+          <p className="text-xs leading-relaxed text-slate-400 line-clamp-2 mb-3 font-normal">
             {description}
           </p>
         )}
@@ -87,21 +80,13 @@ const ProjectCard = ({ project, onDelete }) => {
             {techStack.slice(0, 4).map((t) => (
               <span
                 key={t}
-                className="inline-flex items-center rounded-md px-2 py-0.5 text-[0.6rem] font-medium bp-mono"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.35)',
-                }}
+                className="inline-flex items-center rounded-md px-2 py-0.5 text-[0.6rem] font-medium font-mono bg-white/[0.03] border border-white/[0.06] text-slate-400"
               >
                 {t}
               </span>
             ))}
             {techStack.length > 4 && (
-              <span
-                className="inline-flex items-center text-[0.6rem] bp-mono"
-                style={{ color: 'rgba(255,255,255,0.2)' }}
-              >
+              <span className="inline-flex items-center text-[0.6rem] font-mono text-slate-500">
                 +{techStack.length - 4}
               </span>
             )}
@@ -110,27 +95,18 @@ const ProjectCard = ({ project, onDelete }) => {
       </div>
 
       {/* ── Blueprint Progress ───────────────────────────────── */}
-      <div
-        className="mx-5 py-4"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-      >
+      <div className="mx-5 py-3.5 border-t border-white/[0.06]">
         <BlueprintProgress completedSteps={completedSteps} />
       </div>
 
       {/* ── Card Footer ──────────────────────────────────────── */}
-      <div
-        className="flex items-center justify-between gap-2 px-5 py-3 mt-auto"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-      >
+      <div className="flex items-center justify-between gap-2 px-5 py-3 mt-auto border-t border-white/[0.06] bg-white/[0.01]">
         {/* Left: status + updated time */}
         <div className="flex flex-col gap-0.5 min-w-0">
-          <Badge color={statusMeta.color} className="self-start text-[0.55rem] px-1.5 py-0.5">
+          <Badge color={statusMeta.color} className="self-start text-[0.6rem] font-medium px-2 py-0.5">
             {statusMeta.label}
           </Badge>
-          <span
-            className="text-[0.6rem] bp-mono mt-0.5"
-            style={{ color: 'rgba(255,255,255,0.2)' }}
-          >
+          <span className="text-[0.6rem] font-mono text-slate-500 mt-1">
             Updated {relativeTime}
           </span>
         </div>
@@ -141,21 +117,13 @@ const ProjectCard = ({ project, onDelete }) => {
           <button
             id={`delete-project-${_id}`}
             onClick={() => onDelete(_id)}
-            className="text-[0.65rem] px-2 py-1 rounded transition-colors duration-150"
-            style={{
-              color: 'rgba(239,68,68,0.4)',
-              border: '1px solid rgba(239,68,68,0.15)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(239,68,68,0.8)';
-              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(239,68,68,0.4)';
-              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.15)';
-            }}
+            className="text-[0.65rem] font-medium px-2.5 py-1.5 rounded-lg border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/10 transition-all duration-150 inline-flex items-center gap-1"
             aria-label={`Delete project: ${title}`}
           >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
             Delete
           </button>
 
@@ -163,12 +131,12 @@ const ProjectCard = ({ project, onDelete }) => {
           <Link
             to={`/projects/${_id}`}
             id={`open-project-${_id}`}
-            className="dash-btn inline-flex items-center gap-1.5 text-[0.7rem] px-3 py-1.5 rounded-lg"
+            className="dash-btn inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition-all duration-150"
             aria-label={`Open workspace for ${title}`}
           >
             Open
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-              <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 8h10M9 4l4 4-4 4" />
             </svg>
           </Link>
         </div>

@@ -19,25 +19,18 @@ const BlueprintProgress = ({ completedSteps = [] }) => {
   return (
     <div className="dash-progress">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-2.5">
-        <span
-          className="bp-mono uppercase tracking-wider"
-          style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)' }}
-        >
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono uppercase tracking-wider text-[0.6rem] font-medium text-slate-400">
           Blueprint Progress
         </span>
-        <span
-          className="bp-mono tabular-nums"
-          style={{ fontSize: '0.65rem', color: '#22D3EE' }}
-        >
+        <span className="font-mono tabular-nums text-[0.65rem] font-semibold text-bp-cyan">
           {completed} / {total}
         </span>
       </div>
 
       {/* Progress bar */}
       <div
-        className="h-0.5 rounded-full mb-3 overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.07)' }}
+        className="h-1 rounded-full mb-3 overflow-hidden bg-white/[0.07]"
         role="progressbar"
         aria-valuenow={completed}
         aria-valuemin={0}
@@ -65,23 +58,16 @@ const BlueprintProgress = ({ completedSteps = [] }) => {
               className="flex items-center gap-2"
             >
               {done ? (
-                <span
-                  style={{ color: '#22D3EE', fontSize: '0.7rem', lineHeight: 1 }}
-                  aria-hidden
-                >
-                  ✓
-                </span>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#22D3EE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+                  <polyline points="3.5 8.5 6.5 11.5 12.5 5.5"></polyline>
+                </svg>
               ) : (
-                <span
-                  style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', lineHeight: 1 }}
-                  aria-hidden
-                >
-                  ○
-                </span>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.6" aria-hidden className="shrink-0">
+                  <circle cx="8" cy="8" r="5"></circle>
+                </svg>
               )}
               <span
-                className="text-xs"
-                style={{ color: done ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)' }}
+                className={`text-xs ${done ? 'text-white/80 font-medium' : 'text-white/35 font-normal'}`}
               >
                 {step.label}
               </span>

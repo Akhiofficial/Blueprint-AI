@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../../../layouts/DashboardLayout';
 import DashboardHeader from '../components/DashboardHeader';
 import ProjectCard from '../components/ProjectCard';
@@ -16,37 +17,27 @@ const ContinueProject = ({ project }) => {
   if (!project) return null;
   return (
     <div
-      className="mb-8 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-slide-up"
-      style={{
-        background: 'rgba(59,130,246,0.06)',
-        border: '1px solid rgba(59,130,246,0.18)',
-      }}
+      className="mb-8 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-slide-up bg-[#0D1117] border border-blue-500/20 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.5),0_0_16px_-2px_rgba(59,130,246,0.08)]"
     >
       <div className="min-w-0">
-        <p
-          className="bp-mono uppercase mb-1"
-          style={{ fontSize: '0.58rem', letterSpacing: '0.14em', color: 'rgba(34,211,238,0.7)' }}
-        >
+        <p className="font-mono uppercase mb-1 text-[0.6rem] tracking-widest font-semibold text-bp-cyan">
           Continue where you left off
         </p>
-        <p
-          className="text-sm font-semibold truncate"
-          style={{ color: 'rgba(255,255,255,0.85)' }}
-        >
+        <p className="text-sm sm:text-base font-semibold text-white truncate tracking-tight">
           {project.title}
         </p>
       </div>
-      <a
-        href={`/projects/${project._id}`}
+      <Link
+        to={`/projects/${project._id}`}
         id="continue-project-link"
-        className="dash-btn inline-flex items-center gap-2 text-xs px-4 py-2 rounded-lg shrink-0"
+        className="dash-btn inline-flex items-center gap-2 text-xs px-4 py-2 rounded-lg shrink-0 font-medium shadow-sm transition-all duration-150"
         style={{ width: 'fit-content' }}
       >
         Continue Workspace
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-          <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M3 8h10M9 4l4 4-4 4" />
         </svg>
-      </a>
+      </Link>
     </div>
   );
 };
@@ -146,35 +137,32 @@ const Dashboard = () => {
             <section aria-label="Your projects">
               {/* Section header */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-                <h2
-                  className="text-sm font-semibold"
-                  style={{ color: 'rgba(255,255,255,0.6)' }}
-                >
+                <h2 className="text-sm font-semibold text-white/90">
                   Your Projects
-                  <span
-                    className="ml-2 bp-mono"
-                    style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}
-                  >
+                  <span className="ml-2 font-mono text-xs text-slate-500 font-normal">
                     ({sortedProjects.length})
                   </span>
                 </h2>
 
                 {/* Search */}
-                <div className="relative sm:w-56">
+                <div className="relative sm:w-60">
                   <label htmlFor="project-search" className="sr-only">
                     Search projects
                   </label>
                   <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
                     fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     aria-hidden
-                    className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"
                   >
-                    <circle cx="5" cy="5" r="3.5" stroke="currentColor" strokeWidth="1.2" />
-                    <path d="M8 8l2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
                   <input
                     id="project-search"
@@ -182,21 +170,7 @@ const Dashboard = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search projects…"
-                    className="w-full rounded-lg py-1.5 pl-8 pr-3 text-xs transition-all duration-150"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.7)',
-                      outline: 'none',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.08)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="w-full rounded-lg bg-[#0D1117] border border-white/[0.08] py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 transition-all duration-150 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20"
                     aria-controls="projects-grid"
                     aria-label="Search your projects"
                   />
