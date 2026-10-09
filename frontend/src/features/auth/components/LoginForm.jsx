@@ -3,7 +3,7 @@ import ErrorMessage from '../../../components/common/ErrorMessage';
 
 // The API base URL is used to build the full Google OAuth initiation URL.
 // We use window.location.href (not Axios) because OAuth requires a real browser navigation.
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const LoginForm = ({ onSubmit, isLoading, error }) => {
   const [form, setForm] = useState({ email: '', password: '' });
