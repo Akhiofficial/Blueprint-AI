@@ -52,7 +52,7 @@ const AnalysisPage = () => {
   }, [projectId, currentProject, handleFetchProjectById]);
 
   const handleGenerateBlueprint = () => {
-    navigate(`/projects/${projectId}/workspace`);
+    navigate(`/projects/${projectId}/workspace?doc=BRD&autoGenerate=true`);
   };
 
   return (

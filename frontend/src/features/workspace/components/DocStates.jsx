@@ -91,27 +91,40 @@ export const DocEmpty = ({ docId, docLabel, onGenerate, isGenerating, error }) =
         id={`generate-${docId}-btn`}
         onClick={canGenerate ? onGenerate : undefined}
         disabled={!canGenerate || isGenerating}
-        className="text-xs px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5"
+        className="text-xs px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2"
         style={{
-          background: canGenerate ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.06)',
-          border: canGenerate ? '1px solid rgba(59,130,246,0.35)' : '1px solid rgba(59,130,246,0.12)',
-          color: canGenerate ? '#60A5FA' : 'rgba(96,165,250,0.45)',
+          background: canGenerate
+            ? 'linear-gradient(135deg, #1E40AF 0%, #2563EB 55%, #3B82F6 100%)'
+            : 'rgba(59,130,246,0.06)',
+          border: canGenerate ? '1px solid rgba(147,197,253,0.3)' : '1px solid rgba(59,130,246,0.12)',
+          color: canGenerate ? '#FFFFFF' : 'rgba(96,165,250,0.45)',
           cursor: canGenerate ? 'pointer' : 'not-allowed',
+          boxShadow: canGenerate ? '0 1px 3px rgba(0,0,0,0.4), 0 0 16px rgba(59,130,246,0.25)' : 'none',
           opacity: isGenerating ? 0.7 : 1,
         }}
-        onMouseEnter={e => { if (canGenerate && !isGenerating) e.currentTarget.style.background = 'rgba(59,130,246,0.22)'; }}
-        onMouseLeave={e => { if (canGenerate) e.currentTarget.style.background = 'rgba(59,130,246,0.15)'; }}
+        onMouseEnter={e => {
+          if (canGenerate && !isGenerating) {
+            e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5), 0 0 22px rgba(59,130,246,0.4)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }
+        }}
+        onMouseLeave={e => {
+          if (canGenerate) {
+            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.4), 0 0 16px rgba(59,130,246,0.25)';
+            e.currentTarget.style.transform = 'none';
+          }
+        }}
       >
         {isGenerating ? (
           <>
-            <span className="w-3 h-3 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin" />
-            Generating…
+            <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            Generating {docLabel}…
           </>
         ) : (
           <>
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
-              <path d="M5.5 1v4M3 4l2.5 2.5L8 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M1 9h9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            {/* AI Sparkle Icon */}
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+              <path d="M7.53 1.28a.5.5 0 0 1 .94 0l1.24 3.42a.5.5 0 0 0 .33.33l3.42 1.24a.5.5 0 0 1 0 .94l-3.42 1.24a.5.5 0 0 0-.33.33l-1.24 3.42a.5.5 0 0 1-.94 0l-1.24-3.42a.5.5 0 0 0-.33-.33L2.57 7.21a.5.5 0 0 1 0-.94l3.42-1.24a.5.5 0 0 0 .33-.33L7.53 1.28z" />
             </svg>
             Generate {docLabel}
           </>

@@ -106,7 +106,20 @@ const parseContent = (content) => {
 const normalizeBRD = (raw) => {
   const sections = [];
 
-  // Workspace edited format (sections array)
+  // Workspace save format: plain array of section objects (saved without wrapper object)
+  if (Array.isArray(raw)) {
+    raw.forEach(sec => {
+      sections.push({
+        title: sec.title || 'Section',
+        paragraphs: sec.content ? [sec.content] : [],
+        items: Array.isArray(sec.items) ? sec.items : [],
+        table: sec.table && sec.table.headers ? sec.table : null,
+      });
+    });
+    return sections;
+  }
+
+  // Workspace edited format (sections wrapped in an object)
   if (raw.sections && Array.isArray(raw.sections)) {
     raw.sections.forEach(sec => {
       sections.push({
@@ -218,7 +231,20 @@ const normalizeBRD = (raw) => {
 const normalizeSRS = (raw) => {
   const sections = [];
 
-  // Workspace edited format (sections array)
+  // Workspace save format: plain array of section objects (saved without wrapper object)
+  if (Array.isArray(raw)) {
+    raw.forEach(sec => {
+      sections.push({
+        title: sec.title || 'Section',
+        paragraphs: sec.content ? [sec.content] : [],
+        items: Array.isArray(sec.items) ? sec.items : [],
+        table: sec.table && sec.table.headers ? sec.table : null,
+      });
+    });
+    return sections;
+  }
+
+  // Workspace edited format (sections wrapped in an object)
   if (raw.sections && Array.isArray(raw.sections)) {
     raw.sections.forEach(sec => {
       sections.push({
