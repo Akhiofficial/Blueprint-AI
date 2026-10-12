@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import blueprintLogo from '../assets/BlueprintAI_Logo.png';
 
 // Spotlight component centered on the mouse inside the layout
 const AuthSpotlight = ({ springX, springY }) => {
@@ -82,16 +83,12 @@ const AuthLayout = ({ children, title, subtitle }) => {
       >
         {/* Logo and header */}
         <div className="mb-8 text-center flex flex-col items-center">
-          <Link to="/" className="inline-flex items-center gap-2 group mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-bp-blue/10 border border-bp-blue/25 transition-colors group-hover:border-bp-blue/40">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2"/>
-                <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.8"/>
-                <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.6"/>
-                <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" opacity="0.5"/>
-              </svg>
-            </div>
-            <span className="text-base font-semibold text-white tracking-tight">BlueprintAI</span>
+          <Link to="/" className="inline-flex items-center justify-center focus:outline-none mb-4" aria-label="BlueprintAI Home">
+            <img
+              src={blueprintLogo}
+              alt="BlueprintAI"
+              className="h-10 w-auto object-contain"
+            />
           </Link>
 
           <span className="bp-mono text-[9px] text-bp-cyan/60 uppercase tracking-[0.2em] mb-2 font-medium">

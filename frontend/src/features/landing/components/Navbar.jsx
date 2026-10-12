@@ -62,13 +62,13 @@ const Navbar = () => {
             <Link
               to="/"
               id="nav-logo"
-              className="flex items-center flex-shrink-0 mr-auto focus:outline-none"
+              className="flex items-center flex-shrink-0 sm:ml-2 focus:outline-none"
               aria-label="BlueprintAI Home"
             >
               <img
                 src={blueprintLogo}
                 alt="BlueprintAI"
-                className="h-6 sm:h-7 w-auto object-contain"
+                className="h-9 w-auto object-contain"
               />
             </Link>
 

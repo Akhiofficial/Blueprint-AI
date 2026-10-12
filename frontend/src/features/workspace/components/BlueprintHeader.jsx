@@ -7,16 +7,7 @@
  */
 
 import { Link } from 'react-router-dom';
-
-// BlueprintAI grid icon — matches DashboardLayout BpIcon
-const BpIcon = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-    <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" />
-    <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.8" />
-    <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.6" />
-    <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" opacity="0.5" />
-  </svg>
-);
+import blueprintLogo from '../../../assets/BlueprintAI_Logo.png';
 
 // Save state indicator
 const SaveState = ({ saveState }) => {
@@ -99,12 +90,17 @@ const BlueprintHeader = ({
         </button>
 
         {/* Brand mark */}
-        <div
-          className="hidden lg:flex h-7 w-7 items-center justify-center rounded-lg shrink-0"
-          style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.22)' }}
+        <Link
+          to="/dashboard"
+          className="hidden lg:flex items-center shrink-0 focus:outline-none"
+          aria-label="BlueprintAI Dashboard"
         >
-          <BpIcon size={15} />
-        </div>
+          <img
+            src={blueprintLogo}
+            alt="BlueprintAI"
+            className="h-7 w-auto object-contain"
+          />
+        </Link>
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 min-w-0" aria-label="Breadcrumb">

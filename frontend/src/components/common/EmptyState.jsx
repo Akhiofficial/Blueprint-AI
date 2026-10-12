@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Button from '../ui/Button';
 
 /**
  * Reusable Empty State component for displaying when no data is available.
@@ -34,28 +34,28 @@ const EmptyState = ({
       
       <div className="flex gap-4">
         {actionTo ? (
-          <Link
+          <Button
             to={actionTo}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg bg-brand-500 hover:bg-brand-600 text-white"
+            variant="primary"
           >
             {actionText}
-          </Link>
+          </Button>
         ) : actionText && onAction ? (
-          <button
+          <Button
             onClick={onAction}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg bg-brand-500 hover:bg-brand-600 text-white"
+            variant="primary"
           >
             {actionText}
-          </button>
+          </Button>
         ) : null}
 
         {secondaryActionText && onSecondaryAction && (
-          <button
+          <Button
             onClick={onSecondaryAction}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium transition-colors bg-surface-card border border-surface-border hover:bg-surface-border text-surface-text"
+            variant="secondary"
           >
             {secondaryActionText}
-          </button>
+          </Button>
         )}
       </div>
     </div>

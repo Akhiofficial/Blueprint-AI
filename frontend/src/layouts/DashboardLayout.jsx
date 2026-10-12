@@ -2,16 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../features/auth/auth.context';
 import useAuth from '../features/auth/hooks/useAuth';
-
-// ── BlueprintAI grid icon — matches AuthLayout exactly ─────────────────────
-const BpIcon = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-    <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" />
-    <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.8" />
-    <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="#22D3EE" strokeWidth="1.2" opacity="0.6" />
-    <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="#3B82F6" strokeWidth="1.2" opacity="0.5" />
-  </svg>
-);
+import blueprintLogo from '../assets/BlueprintAI_Logo.png';
 
 // Dashboard shell — sidebar + top bar + main content area
 const DashboardLayout = ({ children }) => {
@@ -77,24 +68,20 @@ const DashboardLayout = ({ children }) => {
       >
         {/* Brand */}
         <div
-          className="flex items-center gap-2.5 px-5 py-5"
+          className="flex items-center px-5 py-4"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-lg shrink-0"
-            style={{
-              background: 'rgba(59,130,246,0.1)',
-              border: '1px solid rgba(59,130,246,0.22)',
-            }}
+          <Link
+            to="/dashboard"
+            className="flex items-center focus:outline-none"
+            aria-label="BlueprintAI Dashboard"
           >
-            <BpIcon size={16} />
-          </div>
-          <span
-            className="text-sm font-semibold tracking-tight"
-            style={{ color: 'rgba(255,255,255,0.9)' }}
-          >
-            BlueprintAI
-          </span>
+            <img
+              src={blueprintLogo}
+              alt="BlueprintAI"
+              className="h-8 w-auto object-contain"
+            />
+          </Link>
         </div>
 
         {/* ── Navigation ── */}
