@@ -14,7 +14,8 @@ Follow these strict output rules:
 3. Derive entities/tables directly from the project's actual functional requirements and domain model. Do NOT invent unrelated entities.
 4. Define realistic, practical field types, constraints (required, unique, primaryKey), default values, and foreign keys.
 5. Provide a valid Mermaid erDiagram code string in "mermaidDiagram" representing the entity relationships.
-6. Choose the most appropriate database type/strategy (e.g., PostgreSQL for relational data, MongoDB for document storage, etc.) based on the project requirements.`;
+6. Choose the most appropriate database type/strategy (e.g., PostgreSQL for relational data, MongoDB for document storage, etc.) based on the project requirements.
+7. Any "enumValues" MUST always be an array of strings (e.g., ["active", "inactive"] or ["1", "2", "3", "4", "5"] for numerical ratings/scales), never raw numbers.`;
 
 /**
  * Builds the complete database schema prompt using SRS output and project metadata.
