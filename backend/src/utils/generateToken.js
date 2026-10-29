@@ -14,7 +14,7 @@ const generateToken = (res, userId) => {
   res.cookie('token', token, {
     httpOnly: true,                                         // not accessible via JS
     secure: env.NODE_ENV === 'production',                  // HTTPS only in prod
-    sameSite: 'lax',                                       // allows OAuth redirect; still blocks cross-site POST CSRF
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax', // allows cross-domain cookies in prod (e.g. Vercel + Render)
     maxAge: 7 * 24 * 60 * 60 * 1000,                       // 7 days in ms
   });
 };
