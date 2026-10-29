@@ -96,7 +96,14 @@ export const apiSpecSchema = z.object({
   version: z.string().default('v1.0'),
   baseUrl: z.string().default('/api/v1'),
   description: z.string().default(''),
-  authSchemes: z.array(z.string()).default([]),
+  authSchemes: z.preprocess(
+    (val) => {
+      if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined).map(String).map(s => s.trim()).filter(Boolean);
+      if (typeof val === 'string' && val.trim()) return [val.trim()];
+      return [];
+    },
+    z.array(z.string()).default([])
+  ),
   resourceGroups: z.array(resourceGroupSchema).min(1, 'At least one resource group is required'),
   totalEndpoints: z.preprocess(
     (v) => (typeof v === 'string' ? parseInt(v, 10) : v),
