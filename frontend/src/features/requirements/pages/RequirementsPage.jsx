@@ -96,6 +96,39 @@ const RequirementsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  // ── Dirty state & auto-flush on exit ──────────────────────────────────────
+  const [isDirty, setIsDirty] = useState(false);
+  const textRef = useRef(text);
+  const isDirtyRef = useRef(false);
+
+  useEffect(() => {
+    textRef.current = text;
+    isDirtyRef.current = isDirty;
+  }, [text, isDirty]);
+
+  // Flush unsaved requirements text if user navigates away before debounce completes
+  useEffect(() => {
+    return () => {
+      if (isDirtyRef.current && textRef.current?.trim()) {
+        saveRequirements(projectId, textRef.current).catch((err) => {
+          console.error('Failed to flush unsaved requirements on unmount:', err);
+        });
+      }
+    };
+  }, [projectId]);
+
+  // Warn on page refresh or tab close if unsaved
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
   // ── Load project if not already in context ────────────────────────────────
   useEffect(() => {
     if (!currentProject || currentProject._id !== projectId) {
@@ -126,6 +159,7 @@ const RequirementsPage = () => {
         saveRequirements(projectId, text).then((saved) => {
           if (saved && saved.updatedAt) {
             setLastSaved(saved.updatedAt);
+            setIsDirty(false); // text is now persisted
           }
         }).catch(err => console.error(err));
       }
@@ -197,6 +231,7 @@ const RequirementsPage = () => {
       try {
         await saveRequirements(projectId, text);
         setLastSaved(new Date().toISOString());
+        setIsDirty(false);
         navigate(`/projects/${projectId}/analysis`);
       } catch {
         setSubmitError('Something went wrong saving requirements. Please try again.');
@@ -364,6 +399,7 @@ const RequirementsPage = () => {
                     value={text}
                     onChange={(e) => {
                       setText(e.target.value);
+                      setIsDirty(true);
                       if (textError) setTextError('');
                     }}
                     rows={18}
